@@ -53,12 +53,10 @@ public class RootServletTest {
 		when(response.getWriter()).thenReturn(printWriter);
 		when(request.getRequestURI()).thenReturn("cake-web/business/service/mint/design");
 		when(request.getContextPath()).thenReturn("cake-web/");
-		when(request.getParameterMap()).thenReturn(new HashMap<String, String>()
-		{
-			{
-				put("id", "123");
-			}
-		});
+		
+		HashMap<String, String[]> paramMap = new HashMap<>();
+		paramMap.put("id", new String[] { "123" });
+		when(request.getParameterMap()).thenReturn(paramMap);
 		
 		rootServlet.doGet(request, response);
 		

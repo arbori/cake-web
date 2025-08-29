@@ -1,0 +1,4 @@
+cake/web/exchange/RequestExchange.class
+cake/web/exchange/GetRequestExchange.class
+cake/web/RootServlet.class
+cake/web/exchange/ParamInfo.class

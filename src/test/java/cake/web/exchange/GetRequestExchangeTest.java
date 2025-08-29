@@ -9,10 +9,7 @@ import java.util.HashMap;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -25,28 +22,16 @@ public class GetRequestExchangeTest {
 	@Mock
 	private HttpServletResponse response;
 
-	@BeforeClass
-	public static void setUpBeforeClass() throws Exception {
-	}
-
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-	}
-
 	@Before
-	public void setUp() throws Exception {
+	public void setUp() {
 		MockitoAnnotations.openMocks(this);
-	}
-
-	@After
-	public void tearDown() throws Exception {
 	}
 
 	@Test
 	public void testFindoutClassForGet() {
 		when(request.getRequestURI()).thenReturn("cake-web/business/service/mint/design");
 		when(request.getContextPath()).thenReturn("cake-web/");
-		when(request.getParameterMap()).thenReturn(new HashMap<String, String>());
+		when(request.getParameterMap()).thenReturn(new HashMap<String, String[]>());
 
 		GetRequestExchange getRequestExchange = null;
 		String result = null;
