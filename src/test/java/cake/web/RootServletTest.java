@@ -60,6 +60,6 @@ public class RootServletTest {
 		
 		rootServlet.doGet(request, response);
 		
-		verify(printWriter).println(Design.METHOD_GET_P1);
+		verify(response.getWriter()).println(Design.METHOD_GET_P1);
 	}
 }

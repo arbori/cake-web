@@ -2,9 +2,10 @@ package cake.web.exchange;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -14,7 +15,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import business.service.mint.Design;
+import com.bank.loan.CustomerResult;
 
 public class GetRequestExchangeTest {
 	@Mock
@@ -29,12 +30,12 @@ public class GetRequestExchangeTest {
 
 	@Test
 	public void testFindoutClassForGet() {
-		when(request.getRequestURI()).thenReturn("cake-web/business/service/mint/design");
-		when(request.getContextPath()).thenReturn("cake-web/");
-		when(request.getParameterMap()).thenReturn(new HashMap<String, String[]>());
+		when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer");
+		when(request.getContextPath()).thenReturn("cakeweb/");
+		when(request.getParameterMap()).thenReturn(Map.of("customerId", new String[] {"1"}));
 
 		GetRequestExchange getRequestExchange = null;
-		String result = null;
+		Object result = null;
 		
 		try {
 			getRequestExchange = new GetRequestExchange(
@@ -53,7 +54,8 @@ public class GetRequestExchangeTest {
 			fail(e.getMessage());
 		}
 		
-		assertEquals("The return of get method is diferent than expected", Design.METHOD_GET_P0, result);
-	}
+		CustomerResult customerExpected = new CustomerResult(1, "John Doe", "john.doe@universe.com");
 
+		assertEquals("The return of get method is diferent than expected", customerExpected, result);
+	}
 }

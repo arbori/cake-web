@@ -2,8 +2,6 @@ package business.service.mint;
 
 import java.util.Date;
 
-import cake.web.exchange.ParamInfo;
-
 public class Design {
 	public static final String METHOD_GET_P0 = "public String get()";
 	public static final String METHOD_GET_P1 = "public String get(int id)";
@@ -21,7 +19,7 @@ public class Design {
      * @param id
      * @return
      */
-    public String get(@ParamInfo(name = "id") Integer id) {
+    public String get(Integer id) {
         return METHOD_GET_P1;
     }
 
