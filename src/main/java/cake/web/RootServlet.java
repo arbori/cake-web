@@ -23,7 +23,7 @@ public class RootServlet extends HttpServlet {
       Object result = getRequestExchange.get(request.getParameterMap());
 
       response.getWriter().println(result);
-    } catch (ClassNotFoundException | NoSuchMethodException | IOException e) {
+    } catch (NoSuchMethodException | IOException e) {
       response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 
       try {
