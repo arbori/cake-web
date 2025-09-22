@@ -3,7 +3,7 @@ package cake.web.exchange;
 import java.util.Map;
 import java.util.Optional;
 
-public class GetRequestExchange extends AbstractRequestExchange {
+public class GetRequestExchange extends BaseRequestExchange {
     public GetRequestExchange(String requestURI, String contextPath) {
         super(requestURI, contextPath);
     }

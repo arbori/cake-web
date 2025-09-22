@@ -6,11 +6,11 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-class AbstractRequestExchange {
+class BaseRequestExchange {
     protected final String requestURI;
     protected final List<String> tokens;
 
-    protected AbstractRequestExchange(String requestURI, String contextPath) {
+    protected BaseRequestExchange(String requestURI, String contextPath) {
         if (requestURI == null || requestURI.isEmpty() || contextPath == null || contextPath.isEmpty()) {
             throw new IllegalArgumentException("requestURI and contextPath must be provided.");
         }
