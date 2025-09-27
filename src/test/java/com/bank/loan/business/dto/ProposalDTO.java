@@ -2,16 +2,16 @@ package com.bank.loan.business.dto;
 
 public class ProposalDTO {
     private String proposalId;
-    private CustomerDTO customer;
+    private CustomerDTO customerDTO;
     private double amount;
     private String status;
 
     public ProposalDTO() {
     }
 
-    public ProposalDTO(String proposalId, CustomerDTO customer, double amount, String status) {
+    public ProposalDTO(String proposalId, CustomerDTO customerDTO, double amount, String status) {
         this.proposalId = proposalId;
-        this.customer = customer;
+        this.customerDTO = customerDTO;
         this.amount = amount;
         this.status = status;
     }
@@ -25,12 +25,12 @@ public class ProposalDTO {
         return this;
     }
 
-    public CustomerDTO getCustomer() {
-        return customer;
+    public CustomerDTO getCustomerDTO() {
+        return customerDTO;
     }
 
-    public ProposalDTO setCustomer(CustomerDTO customer) {
-        this.customer = customer;
+    public ProposalDTO setCustomerDTO(CustomerDTO customerDTO) {
+        this.customerDTO = customerDTO;
         return this;
     }
 
@@ -51,4 +51,29 @@ public class ProposalDTO {
         this.status = status;
         return this;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null || getClass() != obj.getClass())
+            return false;
+        ProposalDTO other = (ProposalDTO) obj;
+        return Double.compare(other.amount, amount) == 0 &&
+               (proposalId != null ? proposalId.equals(other.proposalId) : other.proposalId == null) &&
+               (customerDTO != null ? customerDTO.equals(other.customerDTO) : other.customerDTO == null) &&
+               (status != null ? status.equals(other.status) : other.status == null);
+    }
+
+    @Override
+    public String toString() {
+        return "ProposalDTO{" +
+               "proposalId='" + proposalId + '\'' +
+               ", customer=" + customerDTO +
+               ", amount=" + amount +
+               ", status='" + status + '\'' +
+               '}';
+    }
+
+    
 }

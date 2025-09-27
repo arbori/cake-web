@@ -6,6 +6,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.bank.loan.CustomerResult;
+import com.bank.loan.ProposalResult;
+import com.bank.loan.business.dto.CustomerDTO;
+import com.bank.loan.business.dto.ProposalDTO;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -73,6 +76,34 @@ public class GetRequestExchangeTest {
 
         CustomerResult customerExpected = new CustomerResult(1, "John Doe", "john.doe@universe.com");
         assertEquals("The return of get method is different than expected", customerExpected, result);
+    }
+	
+    @Test
+    public void getRequestExchangePathParameterTwoResources() {
+        when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1/proposal/P-1001");
+        when(request.getContextPath()).thenReturn("cakeweb/");
+        when(request.getParameterMap()).thenReturn(Map.of());
+
+        GetRequestExchange getRequestExchange = new GetRequestExchange(
+                request.getRequestURI(),
+                request.getContextPath()
+        );
+
+        Object result = null;
+        try {
+            result = getRequestExchange.get(request.getParameterMap());
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+
+        CustomerResult customerResult = new CustomerResult(1, "John Doe", "john.doe@universe.com");
+        ProposalResult expected = new ProposalResult(
+            "P-1001", 
+            customerResult, 
+            10000.0, 
+            "Analizing");
+
+        assertEquals("The return of get method is different than expected", expected, result);
     }
 	
 	@Test
