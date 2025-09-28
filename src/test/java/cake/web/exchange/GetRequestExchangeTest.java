@@ -6,10 +6,12 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.bank.loan.CustomerResult;
+import com.bank.loan.ProposalResult;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.io.IOException;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -29,21 +31,18 @@ public class GetRequestExchangeTest {
     }
 
     @Test
-    public void getRequestExchangeQueryParameter() {
+    public void getRequestExchangeQueryParameter() throws IOException {
 		Map<String, String[]> parameters = Map.of("name", new String[]{"John Doe"}, "email", new String[]{"john.doe@anywhere.com"});
 
 		when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(parameters);
 
-        GetRequestExchange getRequestExchange = new GetRequestExchange(
-                request.getRequestURI(),
-                request.getContextPath()
-        );
+        GetRequestExchange getRequestExchange = new GetRequestExchange(request);
 
         Object result = null;
         try {
-            result = getRequestExchange.get(request.getParameterMap());
+            result = getRequestExchange.call();
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -54,19 +53,16 @@ public class GetRequestExchangeTest {
     }
 
     @Test
-    public void getRequestExchangePathParameter() {
+    public void getRequestExchangePathParameter() throws IOException {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
 
-        GetRequestExchange getRequestExchange = new GetRequestExchange(
-                request.getRequestURI(),
-                request.getContextPath()
-        );
+        GetRequestExchange getRequestExchange = new GetRequestExchange(request);
 
         Object result = null;
         try {
-            result = getRequestExchange.get(request.getParameterMap());
+            result = getRequestExchange.call();
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -75,24 +71,46 @@ public class GetRequestExchangeTest {
         assertEquals("The return of get method is different than expected", customerExpected, result);
     }
 	
+    @Test
+    public void getRequestExchangePathParameterTwoResources() throws IOException {
+        when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1/proposal/P-1001");
+        when(request.getContextPath()).thenReturn("cakeweb/");
+        when(request.getParameterMap()).thenReturn(Map.of());
+
+        GetRequestExchange getRequestExchange = new GetRequestExchange(request);
+
+        Object result = null;
+        try {
+            result = getRequestExchange.call();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+
+        CustomerResult customerResult = new CustomerResult(1, "John Doe", "john.doe@universe.com");
+        ProposalResult expected = new ProposalResult(
+            "P-1001", 
+            customerResult, 
+            10000.0, 
+            "Analizing");
+
+        assertEquals("The return of get method is different than expected", expected, result);
+    }
+	
 	@Test
-	public void getRequestExchangeMethodCachePerformanceAverage() {
+	public void getRequestExchangeMethodCachePerformanceAverage() throws IOException {
 		Map<String, String[]> parameters = Map.of("name", new String[]{"John Doe"}, "email", new String[]{"john.doe@anywhere.com"});
 
 		when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(parameters);
 
-		GetRequestExchange getRequestExchange = new GetRequestExchange(
-				request.getRequestURI(),
-				request.getContextPath()
-		);
+		GetRequestExchange getRequestExchange = new GetRequestExchange(request);
 
         CustomerResult expected = new CustomerResult(1, parameters.get("name")[0], parameters.get("email")[0]);
 
 		// Warm up JIT
 		try {
-			getRequestExchange.get(request.getParameterMap());
+			getRequestExchange.call();
 		} catch (Exception e) {
 			fail("Warmup failed: " + e.getMessage());
 		}
@@ -105,19 +123,19 @@ public class GetRequestExchangeTest {
 		try {
 			// Warm up cache
 			for(int i = 0; i < iterations; i++) {
-				getRequestExchange.get(request.getParameterMap());
+				getRequestExchange.call();
 			}
 
 			Object firstResult = null;
 			Object secondResult = null;
 
 			timeFirst = System.nanoTime();
-			firstResult = getRequestExchange.get(request.getParameterMap());
+			firstResult = getRequestExchange.call();
 			timeFirst = System.nanoTime() - timeFirst;
 
 			for (int i = 0; i < iterations; i++) {
 				double start2 = System.nanoTime();
-				secondResult = getRequestExchange.get(request.getParameterMap());
+				secondResult = getRequestExchange.call();
 				totalSecond += (double) System.nanoTime() - start2;
 
 				assertEquals("Unexpected result in first call", expected, firstResult);
