@@ -1,29 +1,38 @@
 package cake.web.exchange;
 
-import java.util.Map;
-import java.util.Optional;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
-public class GetRequestExchange extends BaseRequestExchange {
-    public GetRequestExchange(String requestURI, String contextPath) {
-        super(requestURI, contextPath);
+import javax.servlet.http.HttpServletRequest;
+
+public class GetRequestExchange extends AbstractRequestExchange {
+    /**
+     * Constructs a GetRequestExchange with the given request.
+     * 
+     * @param request the HttpServletRequest object
+     * @throws IOException if an I/O error occurs reading the request body
+     * @throws IllegalArgumentException if request is null
+     */
+    public GetRequestExchange(HttpServletRequest request) throws IOException {
+        super(request);
     }
 
-    public Object get(Map<String, String[]> queryParameters) throws NoSuchMethodException {
-        for (int baseEnd = 0; baseEnd <= tokens.size() - 1; baseEnd++) {
-            String basePackage = join(tokens.subList(0, baseEnd + 1), ".");
-            int nextIndex = baseEnd + 1;
-            try {
-                Optional<Object> result = resolveChainWithBase(basePackage, nextIndex, queryParameters, null, "get");
-                if (result.isPresent()) {
-                    return result.get();
-                }
-            } catch (ClassNotFoundException e) {
-                // try next base split
-            } catch (ReflectiveOperationException | IllegalArgumentException e) {
-                // try next base split
+    @Override
+    public Object call() throws InstantiationException, IllegalAccessException,
+            IllegalArgumentException, InvocationTargetException, NoSuchMethodException {
+        Object resource = lookForResource();
+
+        if (resource != null) {
+            Method httpMethod = findHttpMethod(resource.getClass(), pathParams, HttpMethodName.GET);
+
+            if (httpMethod != null) {
+                setAttributes(resource, parameterMap);
+
+                return callHttpMethod(resource, httpMethod, pathParams);
             }
         }
 
-        throw new NoSuchMethodException("No resource chain resolved for URI: " + requestURI);
+        return null;
     }
 }

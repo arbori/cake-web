@@ -1,6 +1,7 @@
 package cake.web;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -18,12 +19,12 @@ public class RootServlet extends HttpServlet {
   @Override
   protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
     try {
-      GetRequestExchange getRequestExchange = new GetRequestExchange(request.getRequestURI(), request.getContextPath());
+      GetRequestExchange getRequestExchange = new GetRequestExchange(request);
 
-      Object result = getRequestExchange.get(request.getParameterMap());
+      Object result = getRequestExchange.call();
 
       response.getWriter().println(result);
-    } catch (NoSuchMethodException | IOException e) {
+    } catch (NoSuchMethodException | IOException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
       response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 
       try {
