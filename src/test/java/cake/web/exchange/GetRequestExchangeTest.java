@@ -87,7 +87,7 @@ public class GetRequestExchangeTest {
 
         CustomerResult customerResult = new CustomerResult(1, "John Doe", "john.doe@universe.com");
         ProposalResult expected = new ProposalResult(
-                "P-1001",
+                1001,
                 customerResult,
                 10000.0,
                 "Analizing");
@@ -204,7 +204,7 @@ public class GetRequestExchangeTest {
         GetRequestExchange exchange = new GetRequestExchange(request);
 
         try {
-            Object result = exchange.call();
+            exchange.call();
             fail("Expected NoSuchMethodException");
         } catch (NoSuchMethodException _) {
             // expected

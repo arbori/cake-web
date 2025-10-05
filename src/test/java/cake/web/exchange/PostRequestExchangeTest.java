@@ -6,6 +6,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.bank.loan.CustomerResult;
+import com.bank.loan.ProposalResult;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -46,21 +47,34 @@ public class PostRequestExchangeTest {
     }
 
     @Test
-    public void postRequestExchangeForProposal() throws Exception {
-        String bodyJson = "{ \"name\": \"John Doe\", \"email\": \"john.doe@anywhere.com\" }";
+    public void postRequestExchangeWithNestedDTO() throws Exception {
+        String bodyJson = """
+                {
+                    "amount": 25000,
+                    "status": "APPROVED",
+                    "customer": {
+                        "name": "Rita",
+                        "email": "rita@bank.com"
+                    }
+                }
+                """;
 
-        when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer");
+        when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/proposal");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getReader()).thenReturn(new BufferedReader(new StringReader(bodyJson)));
         when(request.getParameterMap()).thenReturn(Map.of());
 
         PostRequestExchange exchange = new PostRequestExchange(request);
-
         Object result = exchange.call();
 
-        assertTrue("Result should be a CustomerResult", result instanceof CustomerResult);
+        assertTrue("Result should be a ProposalResult", result instanceof ProposalResult);
 
-        CustomerResult expected = new CustomerResult(1, "John Doe", "john.doe@anywhere.com");
+        ProposalResult expected = new ProposalResult(
+                10001,
+                new CustomerResult(1, "Rita", "rita@bank.com"),
+                25000.0,
+                "APPROVED");
+
         assertEquals(expected, result);
     }
 }

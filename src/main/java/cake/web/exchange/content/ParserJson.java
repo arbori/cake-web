@@ -38,7 +38,10 @@ public class ParserJson {
             // Split respecting nested braces
             for (String pair : splitJsonPairs(json)) {
                 String[] kv = pair.split(":", 2);
-                if (kv.length != 2) continue;
+                
+                if (kv.length != 2) {
+                    continue;
+                }
 
                 String key = kv[0].trim().replaceAll("(^\")|(\"$)", "");
                 String value = kv[1].trim();
@@ -52,7 +55,7 @@ public class ParserJson {
                     trySetAttributes(key, nested, targetType, instance);
                 } else {
                     // Simple value
-                    String cleanValue = value.replaceAll("(^\\\")|(\\\"$)", "");
+                    String cleanValue = value.replaceAll("(^\")|(\"$)", "");
                     trySetAttributes(key, cleanValue, targetType, instance);
                 }
             }
