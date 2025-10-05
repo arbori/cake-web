@@ -3,9 +3,9 @@ package cake.web.exchange;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Map;
-
 import javax.servlet.http.HttpServletRequest;
+
+import cake.web.exception.HttpMethodException;
 
 public class PostRequestExchange extends AbstractRequestExchange {
     public PostRequestExchange(HttpServletRequest request) throws IOException {
@@ -14,24 +14,11 @@ public class PostRequestExchange extends AbstractRequestExchange {
 
     @Override
     public Object call() throws InstantiationException, IllegalAccessException, IllegalArgumentException,
-            InvocationTargetException, NoSuchMethodException {
+            InvocationTargetException, NoSuchMethodException, HttpMethodException, ClassNotFoundException {
         Object resource = lookForResource();
 
-        if (resource != null) {
-            Method httpMethod = findHttpMethod(resource.getClass(), pathParams, HttpMethodName.POST);
+        Method method = findHttpMethod(resource.getClass(), pathParams, HttpMethodName.POST);
 
-            if (httpMethod != null) {
-                setAttributes(resource, parameterMap);
-
-                if(this.bodyContent != null && !this.bodyContent.isEmpty()) {
-                    setAttributes(resource, Map.of("bodyContent", new String[] { this.bodyContent.toString() }));
-                }
-
-                return callHttpMethod(resource, httpMethod, pathParams);
-            }
-        }
-
-        return null;
+        return callHttpMethod(resource, method);
     }
-
 }

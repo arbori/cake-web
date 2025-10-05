@@ -12,12 +12,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-
 import javax.servlet.http.HttpServletRequest;
+
+import cake.web.exception.HttpMethodException;
+import cake.web.exception.MethodInvocationException;
+import cake.web.exception.ResourceResolutionException;
+import cake.web.exchange.content.Convertion;
+import cake.web.resource.BaseResource;
 
 /**
  * Abstract base class for handling HTTP request exchanges.
- * It provides common functionality for processing requests, resolving resources,
+ * It provides common functionality for processing requests, resolving
+ * resources, * Constructs a BaseRequestExchange with the given request.
+ * 
  * and invoking HTTP methods.
  */
 abstract class AbstractRequestExchange {
@@ -34,7 +41,8 @@ abstract class AbstractRequestExchange {
      * It tokenizes the path and initializes internal state.
      * 
      * @param request the HttpServletRequest object
-     * @throws IOException if an I/O error occurs reading the request body
+     * @throws IOException              if an I/O error occurs reading the request
+     *                                  body
      * @throws IllegalArgumentException if requestURI or contextPath are null/empty
      */
     AbstractRequestExchange(HttpServletRequest request) throws IOException {
@@ -50,7 +58,7 @@ abstract class AbstractRequestExchange {
         this.parameterMap = request.getParameterMap();
         this.bodyContent = new StringBuilder();
 
-        if(request.getReader() != null) {
+        if (request.getReader() != null) {
             request.getReader().lines().forEach(line -> bodyContent.append(line).append("\n"));
         }
 
@@ -72,7 +80,8 @@ abstract class AbstractRequestExchange {
      * @throws NoSuchMethodException
      */
     public abstract Object call() throws InstantiationException, IllegalAccessException,
-            IllegalArgumentException, InvocationTargetException, NoSuchMethodException;
+            IllegalArgumentException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException,
+            HttpMethodException;
 
     /**
      * Recursively resolves the resource chain based on URI tokens and path
@@ -84,52 +93,53 @@ abstract class AbstractRequestExchange {
      * @param pathParams     the list of collected path parameters
      * @param parentResource the current parent resource instance
      * @return the final resolved resource instance or null if not found
-     * @throws NoSuchMethodException
-     * @throws InvocationTargetException
-     * @throws IllegalArgumentException
-     * @throws IllegalAccessException
-     * @throws InstantiationException
+     * @throws NoSuchMethodException     if no suitable get method is found
+     * @throws InvocationTargetException if method invocation fails
+     * @throws IllegalArgumentException  if no method matches the parameter types
+     * @throws IllegalAccessException    if the class or its nullary constructor is
+     *                                   not accessible
+     * @throws InstantiationException    if the class that declares the underlying
+     *                                   constructor represents an abstract class
+     * @throws HttpMethodException       if method invocation fails
      */
-    protected Object lookForResource() throws InstantiationException,
-            IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException {
+    protected Object lookForResource() throws ClassNotFoundException, NoSuchMethodException, IllegalArgumentException {
         Object resource = null;
-        StringBuilder packageName = new StringBuilder();
-        
-        for(String token: tokens) {
-            String nextToken = isPackageInClasspath(packageName, token);
+        StringBuilder fullClassName = new StringBuilder();
 
-            if(nextToken != null) {
-                packageName.append(packageName.isEmpty() ? "" : ".").append(nextToken);
-            } else {
-                nextToken = token;
+        for (String token : tokens) {
+            Optional<Class<?>> classFounded = tryLoadClass(fullClassName + "." + capitalize(token));
 
-                Optional<Class<?>> classNameFounded = tryLoadClass(packageName + "." + capitalize(nextToken));
-
-                // if we have a class but no parent, this is the root resource
-                if (resource == null && classNameFounded.isPresent()) {
-                    resource = classNameFounded.get().getDeclaredConstructor().newInstance();
+            // There is no resource.
+            if (resource == null) {
+                // If no class found, ...
+                if (!classFounded.isPresent()) {
+                    // ... keep building package name.
+                    fullClassName.append(fullClassName.isEmpty() ? "" : ".").append(token);
                 }
-                // if we have a parent but no class, this token is a path param
-                else if (resource != null && !classNameFounded.isPresent()) {
-                    pathParams.add(nextToken);
+                // if we have a class, ...
+                else {
+                    // ... this is the root resource.
+                    resource = instantiateResource(classFounded.get());
                 }
-                // if we have both parent and class, we need to call parent's get to obtain
-
-                else if (resource != null) {
+            }
+            // The resource was founded previously.
+            else {
+                // If other class was not found, ...
+                if (!classFounded.isPresent()) {
+                    // ... this token is a path parameter.
+                    pathParams.add(token);
+                }
+                // Other resource was founded.
+                else {
                     // find get method on parent resource to obtain child parentResource attribute.
-                    Method parentResourceGetMethod = findHttpMethod(resource.getClass(), pathParams, HttpMethodName.GET);
-
-                    // if no suitable get method, it means the path params do not match
-                    if (parentResourceGetMethod == null) {
-                        throw new NoSuchMethodException("No suitable get(...) for class " + resource.getClass().getName()
-                                + " with " + pathParams.size() + " positional parameters.");
-                    }
+                    Method parentResourceGetMethod = findHttpMethod(resource.getClass(), pathParams,
+                            HttpMethodName.GET);
 
                     // call parent's get method to obtain child parentResource attribute.
-                    Object parentResourceResult = callHttpMethod(resource, parentResourceGetMethod, pathParams);
+                    Object parentResourceResult = callHttpMethod(resource, parentResourceGetMethod);
 
                     // inject parent result into child resource
-                    Object childResource = classNameFounded.get().getDeclaredConstructor().newInstance();
+                    Object childResource = instantiateResource(classFounded.get());
 
                     injectParent(childResource, parentResourceResult);
 
@@ -143,45 +153,92 @@ abstract class AbstractRequestExchange {
             }
         }
 
+        if (resource == null) {
+            throw new ClassNotFoundException("No resource found for given URI");
+        }
+
+        if(!parameterMap.isEmpty()) {
+            setAttributes(resource, parameterMap);
+        }
+
+        if(bodyContent != null && !bodyContent.isEmpty() && (resource instanceof BaseResource baseResource)) {
+            baseResource.setBodyContent(bodyContent.toString().trim());
+        }
+
         return resource;
+    }
+
+    /**
+     * Finds all methods in the given resource class that match the HTTP method name.
+     * 
+     * @param resourceClass  the class to search for methods
+     * @param pathParams     the list of path parameters as strings
+     * @param httpMethodName the HTTP method name (e.g., "get", "post")
+     * @return list of matching Methods
+     * @throws NoSuchMethodException if no suitable method is found
+     */
+    protected List<Method> findHttpMethodList(Class<?> resourceClass, HttpMethodName httpMethodName) throws NoSuchMethodException {
+        String partialCacheKey = resourceClass.getName() + "#" + httpMethodName;
+
+        List<Method> methodFoundedList = methodCache.entrySet().stream()
+            .filter(e -> e.getKey().startsWith(partialCacheKey))
+            .map(Map.Entry::getValue)
+            .toList();
+
+        if (!methodFoundedList.isEmpty()) {
+            return methodFoundedList;
+        }
+
+        methodFoundedList = Arrays.stream(resourceClass.getMethods())
+                .filter(m -> m.getName().equals(httpMethodName.toString()))
+                .toList();
+
+        if (methodFoundedList.isEmpty()) {
+            throw new NoSuchMethodException(
+                    "No suitable " + httpMethodName + "(...) for class " + resourceClass.getName());
+        }
+
+        methodFoundedList.forEach(m -> {
+            String cacheKey = resourceClass.getName() + "#" + httpMethodName + "/" + m.getParameterCount();
+            methodCache.put(cacheKey, m);
+        });
+
+        return methodFoundedList;
     }
 
     /**
      * Finds a method in the given resource class that matches the HTTP method name
      * and can accept the provided path parameters.
      * 
-     * @param resourceClass the class to search for the method
-     * @param pathParams    the list of path parameters as strings
+     * @param resourceClass  the class to search for the method
+     * @param pathParams     the list of path parameters as strings
      * @param httpMethodName the HTTP method name (e.g., "get", "post")
      * @return the matching Method, or null if none found
+     * @throws NoSuchMethodException    if no suitable method is found
+     * @throws IllegalArgumentException if no method matches the parameter types
      */
-    protected Method findHttpMethod(Class<?> resourceClass, List<String> pathParams, HttpMethodName httpMethodName) {
-        String cacheKey = resourceClass.getName() + "#" + httpMethodName + "/" + pathParams.size();
+    protected Method findHttpMethod(Class<?> resourceClass, List<String> pathParams, HttpMethodName httpMethodName)
+            throws NoSuchMethodException, IllegalArgumentException {
+        List<Method> methodFoundedList = findHttpMethodList(resourceClass, httpMethodName);
 
-        if (methodCache.containsKey(cacheKey)) {
-            return methodCache.get(cacheKey);
-        }
-
-        Method methodFounded = Arrays.stream(resourceClass.getMethods())
-                .filter(m -> m.getName().equals(httpMethodName.toString()))
-                .filter(m -> m.getParameterCount() == pathParams.size())
+        Method methodFounded = methodFoundedList.stream()
                 .filter(m -> {
                     Class<?>[] paramTypes = m.getParameterTypes();
 
                     for (int i = 0; i < paramTypes.length; i++) {
-                        try {
-                            convert(pathParams.get(i), paramTypes[i]);
-                        } catch (Exception _) {
-                            return false;
-                        }
+                        Convertion.convert(pathParams.get(i), paramTypes[i]);
                     }
 
                     return true;
                 })
                 .findFirst()
                 .orElse(null);
-        
-        methodCache.put(cacheKey, methodFounded);
+
+        if (methodFounded == null) {
+            throw new IllegalArgumentException(
+                    "No suitable " + httpMethodName + "(...) for class " + resourceClass.getName()
+                            + " with " + pathParams.size() + " positional parameters and expected parameters type.");
+        }
 
         return methodFounded;
     }
@@ -212,66 +269,37 @@ abstract class AbstractRequestExchange {
     }
 
     /**
-     * Calls the given http method on the resource instance with the provided path
-     * parameters.
+     * Invokes the given method on the resource instance with path parameters.
+     * It converts path parameters to the required types before invocation.
      * 
-     * @param resource the instance of the resource class
-     * @param method             the http method to invoke
-     * @param pathParams         the list of path parameters as strings
+     * @param resource the object instance to invoke the method on
+     * @param method   the Method to invoke
      * @return the result of the method invocation
-     * @throws InvocationTargetException if the underlying method throws an
-     *                                   exception
-     * @throws IllegalAccessException    if this Method object is enforcing Java
-     *                                   language access control and the underlying
-     *                                   method is inaccessible
+     * @throws MethodInvocationException if invocation fails
      */
-    protected Object callHttpMethod(Object resource, Method method, List<String> pathParams)
-            throws InvocationTargetException, IllegalAccessException {
-        Class<?>[] paramTypes = method.getParameterTypes();
-        Object[] args = new Object[paramTypes.length];
+    protected Object callHttpMethod(Object resource, Method method) {
+        try {
+            Object[] args = new Object[method.getParameterCount()];
+            for (int i = 0; i < args.length; i++) {
+                args[i] = Convertion.convert(pathParams.get(i), method.getParameterTypes()[i]);
+            }
+            pathParams.clear();
 
-        for (int i = 0; i < paramTypes.length; i++) {
-            args[i] = convert(pathParams.get(i), paramTypes[i]);
+            return method.invoke(resource, args);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException re) {
+                // Business exception → propagate unchanged
+                throw re;
+            }
+            // Otherwise infra
+            throw new MethodInvocationException("Error invoking method: " + method.getName(), cause);
+        } catch (ReflectiveOperationException e) {
+            throw new MethodInvocationException("Failed to invoke method: " + method.getName(), e);
         }
-
-        pathParams.clear();
-
-        return method.invoke(resource, args);
     }
 
     /// ---------- PRIVATE UTILITIES ---------- ///
-
-    /**
-     * Checks if the package formed by appending nextToken to packageName exists in
-     * the classpath.
-     * If it exists, appends nextToken to packageName.
-     *
-     * @param packageName the current package name being built
-     * @param nextToken   the next token to append
-     * @return true if the package exists in the classpath, false otherwise
-     */
-    private static String isPackageInClasspath(StringBuilder packageName, String nextToken) {
-        // Build candidate class FQCN safely (no leading dot)
-        String current = packageName.isEmpty() ? "" : packageName.toString();
-        String candidateClass = current.isEmpty()
-                ? capitalize(nextToken)
-                : current + "." + capitalize(nextToken);
-
-        // If a class with that name exists, then this token is likely a class, not a
-        // package
-        if (tryLoadClass(candidateClass).isPresent()) {
-            return null;
-        }
-
-        // Build the new package name we want to test
-        String newPackage = current.isEmpty() ? nextToken : current + "." + nextToken;
-
-        // Use context class loader; check resource path for the package
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-
-        return classLoader.getResource(newPackage.replace('.', '/') + "/") != null
-            ? nextToken : null;
-    }
 
     /**
      * Tokenizes the path after the contextPath, splitting on '/' and ignoring empty
@@ -289,6 +317,22 @@ abstract class AbstractRequestExchange {
         return Arrays.stream(path.split("/"))
                 .filter(s -> !s.isEmpty())
                 .toList();
+    }
+
+    /**
+     * Instantiates a resource class using its public no-arg constructor.
+     * 
+     * @param resourceClass the Class to instantiate
+     * @return the instantiated object
+     * @throws ResourceResolutionException if instantiation fails
+     */
+    private Object instantiateResource(Class<?> resourceClass) {
+        try {
+            return resourceClass.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new ResourceResolutionException(
+                    "Resource class " + resourceClass.getName() + " must have a public no-arg constructor.", e);
+        }
     }
 
     /**
@@ -324,8 +368,8 @@ abstract class AbstractRequestExchange {
      * @param value    the attribute value as string
      * @param clazz    the class of the instance
      * @param instance the object instance to set the attribute on
-     */ 
-    private static void trySetAttributes(String name, String value, Class<?> clazz, Object instance) {
+     */
+    public static void trySetAttributes(String name, String value, Class<?> clazz, Object instance) {
         String setterName = "set" + capitalize(name);
 
         // try setter methods first
@@ -334,7 +378,7 @@ abstract class AbstractRequestExchange {
                 if (!m.getName().equalsIgnoreCase(setterName) || m.getParameterCount() != 1)
                     continue;
                 Class<?> paramType = m.getParameterTypes()[0];
-                Object converted = convert(value, paramType);
+                Object converted = Convertion.convert(value, paramType);
                 m.invoke(instance, converted);
                 return;
             }
@@ -347,7 +391,7 @@ abstract class AbstractRequestExchange {
             Field f = clazz.getDeclaredField(name);
             MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(clazz, MethodHandles.lookup());
             VarHandle handle = lookup.unreflectVarHandle(f);
-            Object converted = convert(value, f.getType());
+            Object converted = Convertion.convert(value, f.getType());
             handle.set(instance, converted);
         } catch (Exception _) {
             // There is no consequence to skipping a query parameter
@@ -462,35 +506,5 @@ abstract class AbstractRequestExchange {
         }
 
         return s;
-    }
-
-    /**
-     * Convert a single string to the requested target type.
-     */
-    private static Object convert(String value, Class<?> targetType) {
-        if (value == null)
-            return null;
-
-        if (targetType == String.class)
-            return value;
-        if (targetType == Integer.class || targetType == int.class)
-            return Integer.valueOf(value);
-        if (targetType == Long.class || targetType == long.class)
-            return Long.valueOf(value);
-        if (targetType == Boolean.class || targetType == boolean.class)
-            return Boolean.valueOf(value);
-        if (targetType == Double.class || targetType == double.class)
-            return Double.valueOf(value);
-        if (targetType == Float.class || targetType == float.class)
-            return Float.valueOf(value);
-        if (targetType.isEnum())
-            return Enum.valueOf((Class<Enum>) targetType, value);
-        // Add more conversions if needed (enums, dates, BigInteger, etc.)
-
-        // If targetType is assignable from String (rare), return the raw string
-        if (targetType.isAssignableFrom(String.class))
-            return value;
-
-        throw new IllegalArgumentException("Unsupported parameter type: " + targetType.getName());
     }
 }
