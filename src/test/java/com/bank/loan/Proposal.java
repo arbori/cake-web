@@ -13,8 +13,6 @@ public class Proposal extends BaseResource {
     private final ProposalService proposalService = new ProposalService();
 
     private CustomerResult customerResult;
-    private double amount;
-    private String status;
 
     private ProposalDTO proposalBody = new ProposalDTO();
 
@@ -24,14 +22,6 @@ public class Proposal extends BaseResource {
 
     public void setCustomer(CustomerResult customerResult) {
         this.customerResult = customerResult;
-    }
-
-    public void setAmount(double amount) {
-        this.amount = amount;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
     public ProposalResult get(Integer proposalId) throws Exception {

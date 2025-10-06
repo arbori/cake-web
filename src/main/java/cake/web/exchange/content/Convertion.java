@@ -26,7 +26,7 @@ public class Convertion {
             if (targetType == Float.class || targetType == float.class)
                 return Float.valueOf(value);
             if (targetType.isEnum())
-                return Enum.valueOf((Class<Enum>) targetType, value);
+                return convertToEnum(value, targetType);
             // Add more conversions if needed (enums, dates, BigInteger, etc.)
 
             // If targetType is assignable from String (rare), return the raw string
@@ -38,5 +38,10 @@ public class Convertion {
         }
 
         throw new IllegalArgumentException("Unsupported parameter type: " + targetType.getName());
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static <T> T convertToEnum(String value, Class<?> targetType) {
+        return (T) Enum.valueOf((Class<? extends Enum>) targetType.asSubclass(Enum.class), value);
     }
 }
