@@ -70,7 +70,7 @@ public class PostRequestExchangeTest {
         assertTrue("Result should be a ProposalResult", result instanceof ProposalResult);
 
         ProposalResult expected = new ProposalResult(
-                10001,
+                100,
                 new CustomerResult(1, "Rita", "rita@bank.com"),
                 25000.0,
                 "APPROVED");

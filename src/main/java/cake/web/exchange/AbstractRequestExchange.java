@@ -162,7 +162,11 @@ abstract class AbstractRequestExchange {
         }
 
         if(bodyContent != null && !bodyContent.isEmpty() && (resource instanceof BaseResource baseResource)) {
-            baseResource.setBodyContent(bodyContent.toString().trim());
+            try {
+                baseResource.setBodyContent(bodyContent.toString().trim());
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Failed to parse body content", e);
+            }
         }
 
         return resource;
@@ -224,6 +228,10 @@ abstract class AbstractRequestExchange {
         Method methodFounded = methodFoundedList.stream()
                 .filter(m -> {
                     Class<?>[] paramTypes = m.getParameterTypes();
+
+                    if( paramTypes.length != pathParams.size()) {
+                        return false;
+                    }
 
                     for (int i = 0; i < paramTypes.length; i++) {
                         Convertion.convert(pathParams.get(i), paramTypes[i]);

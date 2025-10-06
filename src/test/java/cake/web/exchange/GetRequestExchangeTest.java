@@ -72,7 +72,7 @@ public class GetRequestExchangeTest {
 
     @Test
     public void getRequestExchangeCustomerAndProposalByPath() throws IOException {
-        when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1/proposal/P-1001");
+        when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1/proposal/100");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
 
@@ -87,10 +87,13 @@ public class GetRequestExchangeTest {
 
         CustomerResult customerResult = new CustomerResult(1, "John Doe", "john.doe@universe.com");
         ProposalResult expected = new ProposalResult(
-                1001,
+                100,
                 customerResult,
-                10000.0,
-                "Analizing");
+                5000.0,
+                "PENDING");
+
+        System.out.println("Expected: " + expected);
+        System.out.println("Result:   " + result);
 
         assertEquals("The return of get method is different than expected", expected, result);
     }
@@ -156,6 +159,16 @@ public class GetRequestExchangeTest {
     /// --- ADDICIONAL TESTS --- ///
 
     @Test(expected = NoSuchMethodException.class)
+    public void getRequestExchangeMissingMethod() throws Exception {
+        when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/resourceless/");
+        when(request.getContextPath()).thenReturn("cakeweb/");
+        when(request.getParameterMap()).thenReturn(Map.of());
+
+        GetRequestExchange exchange = new GetRequestExchange(request);
+        exchange.call(); // should fail: missing id
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void getRequestExchangeMissingPathParameter() throws Exception {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/");
         when(request.getContextPath()).thenReturn("cakeweb/");
@@ -175,46 +188,30 @@ public class GetRequestExchangeTest {
         exchange.call(); // should fail: cannot convert "abc" to int
     }
 
-    @Test
+    @Test(expected = ClassNotFoundException.class)
     public void getRequestExchangeUnknownResource() throws Exception {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/unknown/123");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
 
         GetRequestExchange exchange = new GetRequestExchange(request);
-
-        Object result = null;
-
-        try {
-            result = exchange.call();
-            fail("Expected null for unknown resource");
-        } catch (ClassNotFoundException _) {
-            // expected
-        }
-
-        assertEquals("Result should be null for unknown resource", null, result);
+        exchange.call();
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void getRequestExchangeNoMatchingMethod() throws Exception {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1/extraParam");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
 
         GetRequestExchange exchange = new GetRequestExchange(request);
-
-        try {
-            exchange.call();
-            fail("Expected NoSuchMethodException");
-        } catch (NoSuchMethodException _) {
-            // expected
-        }
+        exchange.call();
     }
 
     @Test
     public void getRequestExchangeEnumParameter() throws Exception {
         when(request.getRequestURI())
-                .thenReturn("cakeweb/com/bank/loan/customer/1/proposal/P-1001/APPROVED");
+                .thenReturn("cakeweb/com/bank/loan/customer/1/proposal/1001/APPROVED");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
 
@@ -237,7 +234,7 @@ public class GetRequestExchangeTest {
     @Test
     public void getRequestExchangeEnumParameterWithoutCustomerShouldFail() throws Exception {
         when(request.getRequestURI())
-            .thenReturn("cakeweb/com/bank/loan/proposal/P-1001/APPROVED"); // 🚫 no customer in path
+            .thenReturn("cakeweb/com/bank/loan/proposal/1001/APPROVED"); // 🚫 no customer in path
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
 

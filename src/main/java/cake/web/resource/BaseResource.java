@@ -1,5 +1,7 @@
 package cake.web.resource;
 
+import java.io.IOException;
+
 import cake.web.exchange.content.ParserJson;
 
 /**
@@ -16,7 +18,7 @@ public class BaseResource {
         this.bodyObject = bodyObject;
     }
 
-    public void setBodyContent(String bodyContent) {
+    public void setBodyContent(String bodyContent) throws IOException {
         ParserJson.parseJsonToObject(bodyObject, bodyContent);
     }
 }

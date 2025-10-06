@@ -38,9 +38,9 @@ public class Proposal extends BaseResource {
         return get(proposalId, null);
     }
 
-    public ProposalResult get(Integer proposalId, String status) throws IllegalStateException {
+    public ProposalResult get(Integer proposalId, String status) throws BadRequestException {
         if(customerResult == null) {
-            throw new IllegalStateException("Customer is required");
+            throw new BadRequestException("Customer is required");
         }
 
         CustomerDTO customerDTO = customerService.createCustomer(customerResult.name(), customerResult.email());
@@ -58,7 +58,7 @@ public class Proposal extends BaseResource {
                 (status != null) ? status :proposalDTO.getStatus());
         }    
 
-        throw new IllegalStateException("proposalId is required");
+        throw new BadRequestException("proposalId is required");
     }
 
     /**
