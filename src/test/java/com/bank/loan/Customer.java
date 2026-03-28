@@ -4,7 +4,7 @@ import com.bank.loan.business.dto.CustomerDTO;
 import com.bank.loan.business.service.CustomerService;
 
 import cake.web.exception.BadRequestException;
-import cake.web.exchange.ParameterNotFoundException;
+import cake.web.exception.ParameterNotFoundException;
 import cake.web.resource.BaseResource;
 
 /**
@@ -15,14 +15,6 @@ public class Customer extends BaseResource {
 
     private String name;
     private String email;
-
-    /**
-     * Default constructor
-     */
-    public Customer() {
-        // Initialize body object for POST requests
-        setBodyObject(new CustomerDTO());
-    }
 
     public void setName(String name) {
         this.name = name;
@@ -55,11 +47,13 @@ public class Customer extends BaseResource {
      * POST endpoint simulation
      */
     public CustomerResult post() throws BadRequestException {
-        if (getBodyObject() == null) {
-            throw new BadRequestException("No body in request");
-        }
+        try {
+            CustomerDTO dto = getBody(CustomerDTO.class);
 
-        if(getBodyObject() instanceof CustomerDTO dto) {
+            if (dto == null) {
+                throw new BadRequestException("No body in request");
+            }
+
             if (dto.getName() == null || dto.getName().isEmpty()) {
                 throw new BadRequestException("Customer name is required");
             }
@@ -72,8 +66,8 @@ public class Customer extends BaseResource {
             
             return new CustomerResult(result.getCustomerId(), result.getName(), result.getEmail());
         } 
-        else {
-            throw new BadRequestException("Invalid body object");
+        catch(IllegalArgumentException e) {
+            throw new BadRequestException("Invalid body object - " + e.getMessage());
         }
     }
 }

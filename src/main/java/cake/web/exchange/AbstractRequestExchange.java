@@ -8,6 +8,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -16,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import cake.web.exception.HttpMethodException;
 import cake.web.exception.MethodInvocationException;
+import cake.web.exception.NotFoundException;
 import cake.web.exception.ResourceResolutionException;
 import cake.web.exchange.content.Convertion;
 import cake.web.resource.BaseResource;
@@ -33,8 +36,10 @@ abstract class AbstractRequestExchange {
 
     protected final List<String> tokens;
     protected List<String> pathParams;
-    protected Map<String, String[]> parameterMap;
+    protected Map<String, String[]> queryParameterMap;
     protected StringBuilder bodyContent;
+    protected Map<String, String> headers = new HashMap<>();
+    protected String authToken;
 
     /**
      * Constructs a BaseRequestExchange with the given request.
@@ -55,7 +60,9 @@ abstract class AbstractRequestExchange {
 
         this.tokens = tokenizePath(requestURI, contextPath);
         this.pathParams = new ArrayList<>();
-        this.parameterMap = request.getParameterMap();
+        this.queryParameterMap = request.getParameterMap();
+        this.headers = extractHeaders(request);
+        this.authToken = extractAuthToken(request);
         this.bodyContent = new StringBuilder();
 
         if (request.getReader() != null) {
@@ -86,8 +93,8 @@ abstract class AbstractRequestExchange {
     /**
      * Recursively resolves the resource chain based on URI tokens and path
      * parameters.
-     * It builds package names, loads classes, and invokes parent get methods as
-     * needed.
+     * It builds package names, loads classes, and invokes parent http methods
+     * as needed.
      *
      * @param tokens         the list of remaining URI tokens
      * @param pathParams     the list of collected path parameters
@@ -157,16 +164,15 @@ abstract class AbstractRequestExchange {
             throw new ClassNotFoundException("No resource found for given URI");
         }
 
-        if(!parameterMap.isEmpty()) {
-            setAttributes(resource, parameterMap);
+        if(!queryParameterMap.isEmpty()) {
+            setAttributes(resource, queryParameterMap);
         }
 
         if(bodyContent != null && !bodyContent.isEmpty() && (resource instanceof BaseResource baseResource)) {
-            try {
-                baseResource.setBodyContent(bodyContent.toString().trim());
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Failed to parse body content", e);
-            }
+            baseResource.setParameterMap(this.queryParameterMap);
+            baseResource.setRawBody(bodyContent.toString().trim());
+            baseResource.setHeaders(Map.copyOf(this.headers));
+            baseResource.setAuthToken(this.authToken);
         }
 
         return resource;
@@ -182,8 +188,8 @@ abstract class AbstractRequestExchange {
      * @throws NoSuchMethodException if no suitable method is found
      */
     protected List<Method> findHttpMethodList(Class<?> resourceClass, HttpMethodName httpMethodName) throws NoSuchMethodException {
-        String partialCacheKey = resourceClass.getName() + "#" + httpMethodName;
-
+        String partialCacheKey = methodCacheKey(resourceClass, httpMethodName, pathParams);
+            
         List<Method> methodFoundedList = methodCache.entrySet().stream()
             .filter(e -> e.getKey().startsWith(partialCacheKey))
             .map(Map.Entry::getValue)
@@ -203,7 +209,7 @@ abstract class AbstractRequestExchange {
         }
 
         methodFoundedList.forEach(m -> {
-            String cacheKey = resourceClass.getName() + "#" + httpMethodName + "/" + m.getParameterCount();
+            String cacheKey = methodCacheKey(resourceClass, HttpMethodName.valueOf(m.getName().toUpperCase()), pathParams);
             methodCache.put(cacheKey, m);
         });
 
@@ -248,6 +254,9 @@ abstract class AbstractRequestExchange {
                             + " with " + pathParams.size() + " positional parameters and expected parameters type.");
         }
 
+        String cacheKey = methodCacheKey(resourceClass, httpMethodName, pathParams);
+        methodCache.put(cacheKey, methodFounded);
+            
         return methodFounded;
     }
 
@@ -317,7 +326,7 @@ abstract class AbstractRequestExchange {
      * @param contextPath the context path to strip
      * @return list of path tokens
      */
-    private static List<String> tokenizePath(String uri, String contextPath) {
+    private List<String> tokenizePath(String uri, String contextPath) {
         String path = uri.startsWith(contextPath)
                 ? uri.substring(contextPath.length())
                 : uri;
@@ -337,7 +346,7 @@ abstract class AbstractRequestExchange {
     private Object instantiateResource(Class<?> resourceClass) {
         try {
             return resourceClass.getDeclaredConstructor().newInstance();
-        } catch (Exception e) {
+        } catch (ReflectiveOperationException e) {
             throw new ResourceResolutionException(
                     "Resource class " + resourceClass.getName() + " must have a public no-arg constructor.", e);
         }
@@ -349,7 +358,7 @@ abstract class AbstractRequestExchange {
      * @param fqcn the fully qualified class name
      * @return Optional containing the Class if found, or empty if not found
      */
-    private static Optional<Class<?>> tryLoadClass(String fqcn) {
+    private Optional<Class<?>> tryLoadClass(String fqcn) {
         Class<?> classFounded = resourceCache.get(fqcn);
 
         if (classFounded != null) {
@@ -357,13 +366,16 @@ abstract class AbstractRequestExchange {
         }
 
         try {
-            classFounded = Class.forName(fqcn);
+            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            classFounded = Class.forName(fqcn, false, classLoader);
 
             resourceCache.put(fqcn, classFounded);
 
             return Optional.of(classFounded);
         } catch (ClassNotFoundException _) {
             return Optional.empty();
+        } catch (LinkageError e) {
+            throw new NotFoundException("Linkage failure loading " + fqcn, e);
         }
     }
 
@@ -377,32 +389,24 @@ abstract class AbstractRequestExchange {
      * @param clazz    the class of the instance
      * @param instance the object instance to set the attribute on
      */
-    public static void trySetAttributes(String name, String value, Class<?> clazz, Object instance) {
+    private void trySetAttributes(String name, String value, Class<?> clazz, Object instance) {
         String setterName = "set" + capitalize(name);
 
         // try setter methods first
         try {
             for (Method m : clazz.getMethods()) {
-                if (!m.getName().equalsIgnoreCase(setterName) || m.getParameterCount() != 1)
+                if (!m.getName().equalsIgnoreCase(setterName) || m.getParameterCount() != 1) {
                     continue;
+                }
+
                 Class<?> paramType = m.getParameterTypes()[0];
                 Object converted = Convertion.convert(value, paramType);
                 m.invoke(instance, converted);
+                
                 return;
             }
         } catch (Exception _) {
             // No setter found, fallback to field
-        }
-
-        // Fallback: Direct field access via VarHandle (no accessibility warnings)
-        try {
-            Field f = clazz.getDeclaredField(name);
-            MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(clazz, MethodHandles.lookup());
-            VarHandle handle = lookup.unreflectVarHandle(f);
-            Object converted = Convertion.convert(value, f.getType());
-            handle.set(instance, converted);
-        } catch (Exception _) {
-            // There is no consequence to skipping a query parameter
         }
     }
 
@@ -412,7 +416,7 @@ abstract class AbstractRequestExchange {
      * @param s the input string
      * @return the capitalized string
      */
-    private static String capitalize(String s) {
+    private String capitalize(String s) {
         if (s == null || s.isEmpty())
             return "";
 
@@ -427,7 +431,7 @@ abstract class AbstractRequestExchange {
      * - Otherwise try any setter with param type assignable from parent.
      * - Otherwise try direct field injection by type + name heuristics.
      */
-    private static void injectParent(Object childInstance, Object parentResult) {
+    private void injectParent(Object childInstance, Object parentResult) {
         if (parentResult == null) {
             return;
         }
@@ -504,7 +508,7 @@ abstract class AbstractRequestExchange {
      * @param s the input string
      * @return the stripped string
      */
-    private static String stripCommonSuffixes(String s) {
+    private String stripCommonSuffixes(String s) {
         String[] suffixes = { "Result", "DTO", "Entity" };
 
         for (String suf : suffixes) {
@@ -514,5 +518,82 @@ abstract class AbstractRequestExchange {
         }
 
         return s;
+    }
+
+    /**
+     * Composes a cache key for method lookup based on resource class, HTTP method
+     * name, and path parameters.
+     * It includes inferred simple types of path parameters for uniqueness.
+     * 
+     * @param resourceClass  the resource class
+     * @param httpMethodName the HTTP method name
+     * @param pathParams     the list of path parameters as strings
+     * @return the composed cache key
+     */
+    private String methodCacheKey(Class<?> resourceClass, HttpMethodName httpMethodName, List<String> pathParams) {
+        // Compose key with param types if resolvable; uses path param values to attempt type inference
+        StringBuilder key = new StringBuilder(resourceClass.getName())
+            .append("#")
+            .append(httpMethodName)
+            .append("/")
+            .append(pathParams.size())
+            .append(":");
+
+        for (String p : pathParams) {
+            key.append("(").append(inferSimpleType(p)).append(")");
+        }
+
+        return key.toString();
+    }
+
+    /**
+     * Infers a simple type name from a string value using basic heuristics.
+     * Used for method cache key uniqueness.
+     * 
+     * @param v the input string value
+     * @return the inferred simple type name (e.g., "String", "Integer", "Long",
+     *         "Double")
+     */
+    private String inferSimpleType(String v) {
+        // heuristic: could be improved; used only for key uniqueness
+        if (v == null || v.isEmpty()) return "String";
+        if (v.matches("^-?\\d+$")) return "Integer";
+        if (v.matches("^-?\\d+L$")) return "Long";
+        if (v.matches("^-?\\d+\\.\\d+$")) return "Double";
+
+        return "String";
+    }
+
+    /**
+     * Extracts headers from the HttpServletRequest into a Map.
+     * 
+     * @param request the HttpServletRequest object
+     * @return a Map of header names to values
+     */
+    private Map<String, String> extractHeaders(HttpServletRequest request) {
+        Map<String, String> result = new HashMap<>();
+        Enumeration<String> names = request.getHeaderNames();
+        
+        while (names != null && names.hasMoreElements()) {
+            String name = names.nextElement();
+            result.put(name, request.getHeader(name));
+        }
+        
+        return result;
+    }
+
+    /**
+     * Extracts the Authorization header as a Bearer token.
+     * @param request the HttpServletRequest object
+     * @return the extracted token, or null if not present
+     */
+    private String extractAuthToken(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        
+        if (auth != null && auth.startsWith("Bearer ")) {
+            return auth.substring(7);
+        }
+        
+        return auth;
     }
 }

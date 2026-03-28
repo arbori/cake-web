@@ -14,12 +14,6 @@ public class Proposal extends BaseResource {
 
     private CustomerResult customerResult;
 
-    private ProposalDTO proposalBody = new ProposalDTO();
-
-    public Proposal() {
-        setBodyObject(proposalBody);
-    }
-
     public void setCustomer(CustomerResult customerResult) {
         this.customerResult = customerResult;
     }
@@ -55,30 +49,28 @@ public class Proposal extends BaseResource {
      * POST endpoint simulation
      */
     public ProposalResult post() throws BadRequestException {
-        if (getBodyObject() == null) {
+        ProposalDTO proposalDto = getBody(ProposalDTO.class);
+
+        if (proposalDto == null) {
             throw new BadRequestException("No body in request");
         }
 
-        if(getBodyObject() instanceof ProposalDTO dto) {
-            if (dto.getAmount() == null) {
-                throw new BadRequestException("Proposal amount is required");
-            }
-
-            if(dto.getCustomer() == null) {
-                throw new BadRequestException("Customer information is required");
-            }
-
-            ProposalDTO result = proposalService.createProposal(dto);
-            
-            return new ProposalResult(result.getProposalId(), new CustomerResult(
-                result.getCustomer().getCustomerId(), 
-                result.getCustomer().getName(), 
-                result.getCustomer().getEmail()), 
-                result.getAmount(), 
-                result.getStatus());
-        } 
-        else {
-            throw new BadRequestException("Invalid body object");
+        if (proposalDto.getAmount() == null) {
+            throw new BadRequestException("Proposal amount is required");
         }
+
+        if(proposalDto.getCustomer() == null) {
+            throw new BadRequestException("Customer information is required");
+        }
+
+        ProposalDTO result = proposalService.createProposal(proposalDto);
+        
+        return new ProposalResult(result.getProposalId(), new CustomerResult(
+            result.getCustomer().getCustomerId(), 
+            result.getCustomer().getName(), 
+            result.getCustomer().getEmail()), 
+            result.getAmount(), 
+            result.getStatus()
+        );
     }
 }
