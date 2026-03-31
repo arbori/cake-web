@@ -12,4 +12,8 @@ public class CustomerService {
         // Simulate fetching customer data
         return new CustomerDTO(customerId, name, email);
     }
+
+    public CustomerDTO createCustomer(String name, String email) {
+        return new CustomerDTO(1, name, email);
+    }
 }

@@ -1,44 +1,44 @@
 package com.bank.loan.business.dto;
 
 public class ProposalDTO {
-    private String proposalId;
-    private CustomerDTO customerDTO;
-    private double amount;
+    private Integer proposalId;
+    private CustomerDTO customer;
+    private Double amount;
     private String status;
 
     public ProposalDTO() {
     }
 
-    public ProposalDTO(String proposalId, CustomerDTO customerDTO, double amount, String status) {
+    public ProposalDTO(Integer proposalId, CustomerDTO customer, Double amount, String status) {
         this.proposalId = proposalId;
-        this.customerDTO = customerDTO;
+        this.customer = customer;
         this.amount = amount;
         this.status = status;
     }
 
-    public String getProposalId() {
+    public Integer getProposalId() {
         return proposalId;
     }
 
-    public ProposalDTO setProposalId(String proposalId) {
+    public ProposalDTO setProposalId(Integer proposalId) {
         this.proposalId = proposalId;
         return this;
     }
 
-    public CustomerDTO getCustomerDTO() {
-        return customerDTO;
+    public CustomerDTO getCustomer() {
+        return customer;
     }
 
-    public ProposalDTO setCustomerDTO(CustomerDTO customerDTO) {
-        this.customerDTO = customerDTO;
+    public ProposalDTO setCustomer(CustomerDTO customer) {
+        this.customer = customer;
         return this;
     }
 
-    public double getAmount() {
+    public Double getAmount() {
         return amount;
     }
 
-    public ProposalDTO setAmount(double amount) {
+    public ProposalDTO setAmount(Double amount) {
         this.amount = amount;
         return this;
     }
@@ -61,7 +61,7 @@ public class ProposalDTO {
         ProposalDTO other = (ProposalDTO) obj;
         return Double.compare(other.amount, amount) == 0 &&
                (proposalId != null ? proposalId.equals(other.proposalId) : other.proposalId == null) &&
-               (customerDTO != null ? customerDTO.equals(other.customerDTO) : other.customerDTO == null) &&
+               (customer != null ? customer.equals(other.customer) : other.customer == null) &&
                (status != null ? status.equals(other.status) : other.status == null);
     }
 
@@ -69,7 +69,7 @@ public class ProposalDTO {
     public String toString() {
         return "ProposalDTO{" +
                "proposalId='" + proposalId + '\'' +
-               ", customer=" + customerDTO +
+               ", customer=" + customer +
                ", amount=" + amount +
                ", status='" + status + '\'' +
                '}';

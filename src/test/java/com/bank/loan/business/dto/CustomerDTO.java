@@ -5,6 +5,9 @@ public class CustomerDTO {
     private String name;
     private String email;
 
+    public CustomerDTO() {
+    }
+    
     public CustomerDTO(Integer customerId, String name, String email) {
         this.customerId = customerId;
         this.name = name;

@@ -1,6 +1,6 @@
-package cake.web.exchange;
+package cake.web.exception;
 
-public class ParameterNotFoundException extends Exception{
+public class ParameterNotFoundException extends Exception {
     public ParameterNotFoundException() {
         super();
     }
