@@ -3,7 +3,7 @@ package cake.web.exchange;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import cake.web.exception.HttpMethodException;
 

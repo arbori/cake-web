@@ -2,10 +2,10 @@ package cake.web;
 
 import java.io.IOException;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import cake.web.exception.DefaultExceptionMapper;
 import cake.web.exception.ExceptionMapper;
@@ -15,7 +15,11 @@ import cake.web.exchange.PostRequestExchange;
 public class RootServlet extends HttpServlet {
     private static final long serialVersionUID = -7807285398220322910L;
 
-    private final ExceptionMapper exceptionMapper = new DefaultExceptionMapper();
+    private static final ExceptionMapper exceptionMapper = new DefaultExceptionMapper();
+
+    public RootServlet() {
+        super(); // default constructor required
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {

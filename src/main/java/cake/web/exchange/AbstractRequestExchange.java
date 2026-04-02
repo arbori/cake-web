@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import cake.web.exception.HttpMethodException;
 import cake.web.exception.MethodInvocationException;
@@ -54,8 +54,13 @@ abstract class AbstractRequestExchange {
         String requestURI = request.getRequestURI(); // Extract the path from the URI
         String contextPath = request.getContextPath(); // Assuming contextPath is part of the path
 
-        if (requestURI == null || requestURI.isEmpty() || contextPath == null || contextPath.isEmpty()) {
-            throw new IllegalArgumentException("requestURI and contextPath must be provided.");
+        if (requestURI == null || requestURI.isEmpty()) {
+            throw new IllegalArgumentException("requestURI must be provided.");
+        }
+
+        // Protected against null contextPath (though in practice it should not be null)
+        if(contextPath == null) {
+            contextPath = "";
         }
 
         this.tokens = tokenizePath(requestURI, contextPath);
