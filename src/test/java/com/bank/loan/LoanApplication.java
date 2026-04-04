@@ -4,6 +4,8 @@ import cake.web.CakeWebApplication;
 
 public class LoanApplication {
     public static void main(String[] args) throws Exception {
-        CakeWebApplication.start(args);
+        CakeWebApplication.run(config -> {
+            config.setPort(8080);
+        });
     }
 }
