@@ -21,6 +21,7 @@ import cake.web.exception.MethodInvocationException;
 import cake.web.exception.NotFoundException;
 import cake.web.exception.ResourceResolutionException;
 import cake.web.exchange.content.Convertion;
+import cake.web.exchange.content.MethodResolution;
 import cake.web.resource.BaseResource;
 
 /**
@@ -144,11 +145,11 @@ abstract class AbstractRequestExchange {
                 // Other resource was founded.
                 else {
                     // find get method on parent resource to obtain child parentResource attribute.
-                    Method parentResourceGetMethod = findHttpMethod(resource.getClass(), pathParams,
+                    MethodResolution parentResourceGetMethod = findHttpMethod(resource.getClass(), pathParams,
                             HttpMethodName.GET);
 
                     // call parent's get method to obtain child parentResource attribute.
-                    Object parentResourceResult = callHttpMethod(resource, parentResourceGetMethod);
+                    Object parentResourceResult = parentResourceGetMethod.call(resource);
 
                     // inject parent result into child resource
                     Object childResource = instantiateResource(classFounded.get());
@@ -228,13 +229,20 @@ abstract class AbstractRequestExchange {
      * @param resourceClass  the class to search for the method
      * @param pathParams     the list of path parameters as strings
      * @param httpMethodName the HTTP method name (e.g., "get", "post")
-     * @return the matching Method, or null if none found
+     * @return the matching Method wrapped in MethodResolution, which includes the method and converted arguments
      * @throws NoSuchMethodException    if no suitable method is found
      * @throws IllegalArgumentException if no method matches the parameter types
      */
-    protected Method findHttpMethod(Class<?> resourceClass, List<String> pathParams, HttpMethodName httpMethodName)
+    protected MethodResolution findHttpMethod(Class<?> resourceClass, List<String> pathParams, HttpMethodName httpMethodName)
             throws NoSuchMethodException, IllegalArgumentException {
         List<Method> methodFoundedList = findHttpMethodList(resourceClass, httpMethodName);
+        List<Object> args = new ArrayList<>();
+        Object[] parameter = new Object[1];
+
+        if(this.bodyContent != null && httpMethodName != HttpMethodName.GET) {
+            // TODO: This is a temporary solution to pass the body content as a path parameter. May be the proper name should be unnamedParameters instead pathParamsms.
+            this.pathParams.add(this.bodyContent.toString());
+        }
 
         Method methodFounded = methodFoundedList.stream()
                 .filter(m -> {
@@ -244,8 +252,16 @@ abstract class AbstractRequestExchange {
                         return false;
                     }
 
-                    for (int i = 0; i < paramTypes.length; i++) {
-                        Convertion.convert(pathParams.get(i), paramTypes[i]);
+                    try {
+                        for (int i = 0; i < paramTypes.length; i++) {
+                            parameter[0] = Convertion.convert(pathParams.get(i), paramTypes[i]);
+                            
+                            if(parameter[0] != null) {
+                                args.add(parameter[0]);
+                            }
+                        }
+                    } catch (IllegalArgumentException _) {
+                        return false;
                     }
 
                     return true;
@@ -262,7 +278,9 @@ abstract class AbstractRequestExchange {
         String cacheKey = methodCacheKey(resourceClass, httpMethodName, pathParams);
         methodCache.put(cacheKey, methodFounded);
             
-        return methodFounded;
+        pathParams.clear();
+        
+        return new MethodResolution(methodFounded, args);
     }
 
     /**

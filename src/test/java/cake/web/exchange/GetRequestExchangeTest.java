@@ -7,6 +7,7 @@ import org.mockito.MockitoAnnotations;
 
 import com.bank.loan.CustomerResult;
 import com.bank.loan.ProposalResult;
+import com.thebank.loan.entity.CustomerEntity;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,6 +27,24 @@ public class GetRequestExchangeTest {
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    public void getRequestExchangeById() throws IOException {
+        when(request.getRequestURI()).thenReturn("thebank.com/loan/capture/customer/1");
+        when(request.getContextPath()).thenReturn("thebank.com/");
+
+        GetRequestExchange getRequestExchange = new GetRequestExchange(request);
+
+        Object result = null;
+
+        try {
+            result = getRequestExchange.call();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+
+        assertNotNull(result);
     }
 
     @Test

@@ -2,11 +2,11 @@ package cake.web.exchange;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 import cake.web.exception.HttpMethodException;
+import cake.web.exchange.content.MethodResolution;
 
 public class GetRequestExchange extends AbstractRequestExchange {
     /**
@@ -25,8 +25,8 @@ public class GetRequestExchange extends AbstractRequestExchange {
             InvocationTargetException, NoSuchMethodException, HttpMethodException, ClassNotFoundException {
         Object resource = lookForResource();
 
-        Method method = findHttpMethod(resource.getClass(), pathParams, HttpMethodName.GET);
-
-        return callHttpMethod(resource, method);
+        MethodResolution method = findHttpMethod(resource.getClass(), pathParams, HttpMethodName.GET);
+        
+        return method.call(resource);
     }
 }

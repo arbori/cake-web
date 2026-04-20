@@ -2,13 +2,15 @@ package cake.web.exchange;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+
 import jakarta.servlet.http.HttpServletRequest;
 
 import cake.web.exception.HttpMethodException;
 import cake.web.exchange.content.MethodResolution;
 
-public class PostRequestExchange extends AbstractRequestExchange {
-    public PostRequestExchange(HttpServletRequest request) throws IOException {
+public final class PutRequestExchange extends AbstractRequestExchange {
+    public PutRequestExchange(HttpServletRequest request) throws IOException {
         super(request);
     }
 
@@ -17,8 +19,9 @@ public class PostRequestExchange extends AbstractRequestExchange {
             InvocationTargetException, NoSuchMethodException, HttpMethodException, ClassNotFoundException {
         Object resource = lookForResource();
 
-        MethodResolution method = findHttpMethod(resource.getClass(), pathParams, HttpMethodName.POST);
+        MethodResolution methodResolution = findHttpMethod(resource.getClass(), pathParams, HttpMethodName.PUT);
 
-        return method.call(resource);
+        return methodResolution.call(resource);
     }
 }
+
