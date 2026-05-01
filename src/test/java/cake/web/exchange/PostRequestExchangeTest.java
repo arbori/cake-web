@@ -1,7 +1,11 @@
 package cake.web.exchange;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -12,23 +16,19 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.util.Map;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.when;
-
-public class PostRequestExchangeTest {
+class PostRequestExchangeTest {
     @Mock
     private HttpServletRequest request;
     @Mock
     private HttpServletResponse response;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void postRequestExchangeWithBodyContent() throws Exception {
+    void postRequestExchangeWithBodyContent() throws Exception {
         String bodyJson = "{ \"name\": \"John Doe\", \"email\": \"john.doe@anywhere.com\" }";
 
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer");
@@ -40,14 +40,14 @@ public class PostRequestExchangeTest {
 
         Object result = exchange.call();
 
-        assertTrue("Result should be a CustomerResult", result instanceof CustomerResult);
+        assertTrue(result instanceof CustomerResult, "Result should be a CustomerResult");
 
         CustomerResult expected = new CustomerResult(1, "John Doe", "john.doe@anywhere.com");
         assertEquals(expected, result);
     }
 
     @Test
-    public void postRequestExchangeWithNestedDTO() throws Exception {
+    void postRequestExchangeWithNestedDTO() throws Exception {
         String bodyJson = """
                 {
                     "amount": 25000,
@@ -67,7 +67,7 @@ public class PostRequestExchangeTest {
         PostRequestExchange exchange = new PostRequestExchange(request);
         Object result = exchange.call();
 
-        assertTrue("Result should be a ProposalResult", result instanceof ProposalResult);
+        assertTrue(result instanceof ProposalResult, "Result should be a ProposalResult");
 
         ProposalResult expected = new ProposalResult(
                 100,

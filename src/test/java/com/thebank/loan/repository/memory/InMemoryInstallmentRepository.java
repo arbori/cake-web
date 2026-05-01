@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import com.thebank.loan.entity.InstallmentEntity;
@@ -14,9 +14,22 @@ import com.thebank.loan.entity.ProposalEntity;
 import com.thebank.loan.repository.InstallmentRepository;
 import com.thebank.loan.repository.Repository;
 
-public class InMemoryInstallmentRepository implements Repository<InstallmentEntity, Long>, InstallmentRepository {
-    private final Map<Long, InstallmentEntity> store = new ConcurrentHashMap<>();
-    private final AtomicLong idGenerator = new AtomicLong(1);
+public class InMemoryInstallmentRepository implements Repository<InstallmentEntity, Integer>, InstallmentRepository {
+    private final Map<Integer, InstallmentEntity> store = new ConcurrentHashMap<>();
+    private final AtomicInteger idGenerator = new AtomicInteger(1);
+
+    private static InMemoryInstallmentRepository instance;
+
+    private InMemoryInstallmentRepository() {
+        // Private constructor to prevent instantiation
+    }
+
+    public static synchronized InMemoryInstallmentRepository instance() {
+        if (instance == null) {
+            instance = new InMemoryInstallmentRepository();
+        }
+        return instance;
+    }
 
     @Override
     public InstallmentEntity save(InstallmentEntity entity) {
@@ -28,7 +41,7 @@ public class InMemoryInstallmentRepository implements Repository<InstallmentEnti
     }
 
     @Override
-    public Optional<InstallmentEntity> findById(Long id) {
+    public Optional<InstallmentEntity> findById(Integer id) {
         return Optional.ofNullable(store.get(id));
     }
 
@@ -38,25 +51,25 @@ public class InMemoryInstallmentRepository implements Repository<InstallmentEnti
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(Integer id) {
         store.remove(id);
     }
 
     @Override
-    public boolean existsById(Long id) {
+    public boolean existsById(Integer id) {
         return store.containsKey(id);
     }
 
     @Override
-    public List<InstallmentEntity> findByLoanRequestId(Long loanRequestId) {
+    public List<InstallmentEntity> findByLoanRequestId(Integer loanRequestId) {
         return store.values().stream()
                 .filter(i -> i.getLoanRequestId().equals(loanRequestId))
                 .toList();
     }
 
     @Override
-    public List<InstallmentEntity> findByCustomerId(Long customerId, List<ProposalEntity> customerLoans) {
-        Set<Long> loanIds = customerLoans.stream()
+    public List<InstallmentEntity> findByCustomerId(Integer customerId, List<ProposalEntity> customerLoans) {
+        Set<Integer> loanIds = customerLoans.stream()
             .filter(req -> req.getCustomerId() == customerId)
             .map(ProposalEntity::getId)
             .collect(Collectors.toSet());

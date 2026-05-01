@@ -9,12 +9,12 @@ public interface CustomerRepository {
 
     CustomerEntity save(CustomerEntity entity);
 
-    Optional<CustomerEntity> findById(Long id);
+    Optional<CustomerEntity> findById(Integer id);
 
     List<CustomerEntity> findAll();
 
-    void deleteById(Long id);
+    void deleteById(Integer id);
 
-    boolean existsById(Long id);
+    boolean existsById(Integer id);
 
 }

@@ -3,16 +3,16 @@ package com.thebank.loan.entity;
 import java.util.Objects;
 
 public class AddressEntity {
-    private Long id;
+    private Integer id;
     private String zipcode;
     private String street;
     private String city;
     private String state;
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
-    public AddressEntity setId(Long id) {
+    public AddressEntity setId(Integer id) {
         this.id = id;
         return this;
     }

@@ -17,16 +17,16 @@ import cake.web.exception.ParameterNotFoundException;
  */
 public class Customer {
     private LoanService loanService = new LoanService(
-        new InMemoryCustomerRepository(),
-        new InMemoryAddressRepository(),
-        new InMemoryProposalRepository(),
-        new InMemoryInstallmentRepository()
+        InMemoryCustomerRepository.instance(),
+        InMemoryAddressRepository.instance(),
+        InMemoryProposalRepository.instance(),
+        InMemoryInstallmentRepository.instance()
     );
 
     /**
      * GET endpoint simulation
      */
-    public CustomerEntity get(Long customerId) throws ParameterNotFoundException {
+    public CustomerEntity get(Integer customerId) throws ParameterNotFoundException {
         if(customerId != null) {
             Optional<CustomerEntity> customerEntityOpt = loanService.getCustomer(customerId);
             

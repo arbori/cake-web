@@ -5,15 +5,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.thebank.loan.entity.AddressEntity;
 import com.thebank.loan.repository.AddressRepository;
 import com.thebank.loan.repository.Repository;
 
-public class InMemoryAddressRepository implements Repository<AddressEntity, Long>, AddressRepository {
-    private final Map<Long, AddressEntity> store = new ConcurrentHashMap<>();
-    private final AtomicLong idGenerator = new AtomicLong(1);
+public class InMemoryAddressRepository implements Repository<AddressEntity, Integer>, AddressRepository {
+    private final Map<Integer, AddressEntity> store = new ConcurrentHashMap<>();
+    private final AtomicInteger idGenerator = new AtomicInteger(1);
+
+    private static InMemoryAddressRepository instance;
+
+    private InMemoryAddressRepository() {
+        // Private constructor to prevent instantiation
+    }
+
+    public static synchronized InMemoryAddressRepository instance() {
+        if (instance == null) {
+            instance = new InMemoryAddressRepository();
+        }
+        return instance;
+    }
 
     @Override
     public AddressEntity save(AddressEntity entity) {
@@ -25,7 +38,7 @@ public class InMemoryAddressRepository implements Repository<AddressEntity, Long
     }
 
     @Override
-    public Optional<AddressEntity> findById(Long id) {
+    public Optional<AddressEntity> findById(Integer id) {
         return Optional.ofNullable(store.get(id));
     }
 
@@ -35,12 +48,12 @@ public class InMemoryAddressRepository implements Repository<AddressEntity, Long
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(Integer id) {
         store.remove(id);
     }
 
     @Override
-    public boolean existsById(Long id) {
+    public boolean existsById(Integer id) {
         return store.containsKey(id);
     }
 }

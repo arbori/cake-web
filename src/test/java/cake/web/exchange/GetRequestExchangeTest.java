@@ -1,13 +1,19 @@
 package cake.web.exchange;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.bank.loan.CustomerResult;
 import com.bank.loan.ProposalResult;
-import com.thebank.loan.entity.CustomerEntity;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,22 +21,19 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.when;
-
-public class GetRequestExchangeTest {
+class GetRequestExchangeTest {
     @Mock
     private HttpServletRequest request;
     @Mock
     private HttpServletResponse response;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void getRequestExchangeById() throws IOException {
+    void getRequestExchangeById() throws IOException {
         when(request.getRequestURI()).thenReturn("thebank.com/loan/capture/customer/1");
         when(request.getContextPath()).thenReturn("thebank.com/");
 
@@ -48,7 +51,7 @@ public class GetRequestExchangeTest {
     }
 
     @Test
-    public void getRequestExchangeQueryParameter() throws IOException {
+    void getRequestExchangeQueryParameter() throws IOException {
         Map<String, String[]> parameters = Map.of("name", new String[] { "John Doe" }, "email",
                 new String[] { "john.doe@anywhere.com" });
 
@@ -67,11 +70,11 @@ public class GetRequestExchangeTest {
 
         CustomerResult customerExpected = new CustomerResult(1, parameters.get("name")[0], parameters.get("email")[0]);
 
-        assertEquals("The return of get method is different than expected", customerExpected, result);
+        assertEquals(customerExpected, result, "The return of get method is different than expected");
     }
 
     @Test
-    public void getRequestExchangePathParameter() throws IOException {
+    void getRequestExchangePathParameter() throws IOException {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
@@ -86,11 +89,11 @@ public class GetRequestExchangeTest {
         }
 
         CustomerResult customerExpected = new CustomerResult(1, "John Doe", "john.doe@universe.com");
-        assertEquals("The return of get method is different than expected", customerExpected, result);
+        assertEquals(customerExpected, result, "The return of get method is different than expected");
     }
 
     @Test
-    public void getRequestExchangeCustomerAndProposalByPath() throws IOException {
+    void getRequestExchangeCustomerAndProposalByPath() throws IOException {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1/proposal/100");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
@@ -114,11 +117,11 @@ public class GetRequestExchangeTest {
         System.out.println("Expected: " + expected);
         System.out.println("Result:   " + result);
 
-        assertEquals("The return of get method is different than expected", expected, result);
+        assertEquals(expected, result, "The return of get method is different than expected");
     }
 
     @Test
-    public void getRequestExchangeMethodCachePerformanceAverage() throws IOException {
+    void getRequestExchangeMethodCachePerformanceAverage() throws IOException {
         Map<String, String[]> parameters = Map.of("name", new String[] { "John Doe" }, "email",
                 new String[] { "john.doe@anywhere.com" });
 
@@ -160,8 +163,8 @@ public class GetRequestExchangeTest {
                 secondResult = getRequestExchange.call();
                 totalSecond += (double) System.nanoTime() - start2;
 
-                assertEquals("Unexpected result in first call", expected, firstResult);
-                assertEquals("Unexpected result in second call", expected, secondResult);
+                assertEquals(expected, firstResult, "Unexpected result in first call");
+                assertEquals(expected, secondResult, "Unexpected result in second call");
             }
         } catch (Exception e) {
             fail("Iteration failed: " + e.getMessage());
@@ -169,66 +172,67 @@ public class GetRequestExchangeTest {
 
         double avgSecond = totalSecond / iterations;
 
-        assertTrue(
+        assertTrue(avgSecond < timeFirst * 1.3,
                 String.format("Expected cached calls to be faster or similar (timeFirst=%fns, avgSecond=%fns)",
-                        timeFirst, avgSecond),
-                avgSecond < timeFirst * 1.3);
+                        timeFirst, avgSecond));
     }
 
     /// --- ADDICIONAL TESTS --- ///
 
-    @Test(expected = NoSuchMethodException.class)
-    public void getRequestExchangeMissingMethod() throws Exception {
+    @Test
+    void getRequestExchangeMissingMethod() throws Exception {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/resourceless/");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
 
         GetRequestExchange exchange = new GetRequestExchange(request);
-        exchange.call(); // should fail: missing id
+
+        assertThrows(NoSuchMethodException.class, exchange::call); // should fail: missing id
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void getRequestExchangeMissingPathParameter() throws Exception {
+    @Test
+    void getRequestExchangeMissingPathParameter() throws Exception {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
 
         GetRequestExchange exchange = new GetRequestExchange(request);
-        exchange.call(); // should fail: missing id
+        
+        assertThrows(IllegalArgumentException.class, exchange::call); // should fail: missing id
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void getRequestExchangeInvalidPathParameterType() throws Exception {
+    @Test
+    void getRequestExchangeInvalidPathParameterType() throws Exception {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/abc");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
 
         GetRequestExchange exchange = new GetRequestExchange(request);
-        exchange.call(); // should fail: cannot convert "abc" to int
+        assertThrows(IllegalArgumentException.class, exchange::call); // should fail: cannot convert "abc" to int
     }
 
-    @Test(expected = ClassNotFoundException.class)
-    public void getRequestExchangeUnknownResource() throws Exception {
+    @Test
+    void getRequestExchangeUnknownResource() throws Exception {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/unknown/123");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
 
         GetRequestExchange exchange = new GetRequestExchange(request);
-        exchange.call();
+        assertThrows(ClassNotFoundException.class, exchange::call);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void getRequestExchangeNoMatchingMethod() throws Exception {
+    @Test
+    void getRequestExchangeNoMatchingMethod() throws Exception {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1/extraParam");
         when(request.getContextPath()).thenReturn("cakeweb/");
         when(request.getParameterMap()).thenReturn(Map.of());
 
         GetRequestExchange exchange = new GetRequestExchange(request);
-        exchange.call();
+        assertThrows(NoSuchMethodException.class, exchange::call);
     }
 
     @Test
-    public void getRequestExchangeEnumParameter() throws Exception {
+    void getRequestExchangeEnumParameter() throws Exception {
         when(request.getRequestURI())
                 .thenReturn("cakeweb/com/bank/loan/customer/1/proposal/1001/APPROVED");
         when(request.getContextPath()).thenReturn("cakeweb/");
@@ -237,21 +241,21 @@ public class GetRequestExchangeTest {
         GetRequestExchange exchange = new GetRequestExchange(request);
 
         Object result = exchange.call();
-        assertTrue("Result should be a ProposalResult", result instanceof ProposalResult);
+        assertTrue(result instanceof ProposalResult, "Result should be a ProposalResult");
 
         ProposalResult proposal = (ProposalResult) result;
 
         // ✅ Customer is required, so we validate presence too
-        assertEquals("Customer should be attached", 1, (int) proposal.customer().customerId());
-        assertEquals("The customer name is different", "John Doe", proposal.customer().name());
-        assertEquals("john.doe@universe.com", proposal.customer().email());
+        assertEquals(1, (int) proposal.customer().customerId(), "Customer should be attached");
+        assertEquals("John Doe", proposal.customer().name(), "The customer name is different");
+        assertEquals("john.doe@universe.com", proposal.customer().email(), "The customer email is different");
 
         // ✅ Enum/Status parameter
         assertEquals("APPROVED", proposal.status());
     }
 
     @Test
-    public void getRequestExchangeEnumParameterWithoutCustomerShouldFail() throws Exception {
+    void getRequestExchangeEnumParameterWithoutCustomerShouldFail() throws Exception {
         when(request.getRequestURI())
             .thenReturn("cakeweb/com/bank/loan/proposal/1001/APPROVED"); // 🚫 no customer in path
         when(request.getContextPath()).thenReturn("cakeweb/");
@@ -263,7 +267,7 @@ public class GetRequestExchangeTest {
             exchange.call();
             fail("Expected exception when customer is missing");
         } catch (Exception e) {
-            assertTrue(e.getMessage()!= null && e.getMessage().contains("Customer is required")); // expected
+            assertTrue(e.getMessage()!= null && e.getMessage().contains("Customer is required"), "Expected exception when customer is missing"); // expected
         }
     }
 }

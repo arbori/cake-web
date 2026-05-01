@@ -102,7 +102,7 @@ public class RiskAnalysisService {
         return principal.multiply(factor).setScale(2, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal getZipcodeRiskFactor(Long addressId) {
+    private BigDecimal getZipcodeRiskFactor(Integer addressId) {
         return addressRepository.findById(addressId)
                 .map(AddressEntity::getZipcode)
                 .map(zip -> {

@@ -9,12 +9,12 @@ public interface AddressRepository {
 
     AddressEntity save(AddressEntity entity);
 
-    Optional<AddressEntity> findById(Long id);
+    Optional<AddressEntity> findById(Integer id);
 
     List<AddressEntity> findAll();
 
-    void deleteById(Long id);
+    void deleteById(Integer id);
 
-    boolean existsById(Long id);
+    boolean existsById(Integer id);
 
 }

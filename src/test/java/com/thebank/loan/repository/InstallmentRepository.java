@@ -10,16 +10,16 @@ public interface InstallmentRepository {
 
     InstallmentEntity save(InstallmentEntity entity);
 
-    Optional<InstallmentEntity> findById(Long id);
+    Optional<InstallmentEntity> findById(Integer id);
 
     List<InstallmentEntity> findAll();
 
-    void deleteById(Long id);
+    void deleteById(Integer id);
 
-    boolean existsById(Long id);
+    boolean existsById(Integer id);
 
-    List<InstallmentEntity> findByLoanRequestId(Long loanRequestId);
+    List<InstallmentEntity> findByLoanRequestId(Integer loanRequestId);
 
-    List<InstallmentEntity> findByCustomerId(Long customerId, List<ProposalEntity> customerLoans);
+    List<InstallmentEntity> findByCustomerId(Integer customerId, List<ProposalEntity> customerLoans);
 
 }

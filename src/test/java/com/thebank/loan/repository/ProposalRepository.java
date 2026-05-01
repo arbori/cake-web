@@ -9,12 +9,12 @@ public interface ProposalRepository {
 
     ProposalEntity save(ProposalEntity entity);
 
-    Optional<ProposalEntity> findById(Long id);
+    Optional<ProposalEntity> findById(Integer id);
 
     List<ProposalEntity> findAll();
 
-    void deleteById(Long id);
+    void deleteById(Integer id);
 
-    boolean existsById(Long id);
+    boolean existsById(Integer id);
 
 }

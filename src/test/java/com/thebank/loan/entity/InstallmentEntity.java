@@ -5,28 +5,28 @@ import java.time.LocalDate;
 import java.util.Objects;
 
 public class InstallmentEntity {
-    private Long id;
-    private Long loanRequestId;
+    private Integer id;
+    private Integer loanRequestId;
     private Integer installmentNumber;
     private LocalDate dueDate;
     private BigDecimal amount;
     private LocalDate paidDate;
     private Boolean isLate;
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
-    public InstallmentEntity setId(Long id) {
+    public InstallmentEntity setId(Integer id) {
         this.id = id;
         return this;
     }
-    
-    public Long getLoanRequestId() {
+
+    public Integer getLoanRequestId() {
         return loanRequestId;
     }
 
-    public InstallmentEntity setLoanRequestId(Long loanRequestId) {
+    public InstallmentEntity setLoanRequestId(Integer loanRequestId) {
         this.loanRequestId = loanRequestId;
         return this;
     }

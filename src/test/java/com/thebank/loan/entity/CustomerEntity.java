@@ -6,17 +6,17 @@ import java.util.List;
 import java.util.Objects;
 
 public class CustomerEntity {
-    private Long id;
+    private Integer id;
     private String name;
     private BigDecimal salary;
-    private Long addressId;
+    private Integer addressId;
     private List<ProposalEntity> loanRequests = new ArrayList<>();
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
-    public CustomerEntity setId(Long id) {
+    public CustomerEntity setId(Integer id) {
         this.id = id;
         return this;
     }
@@ -39,11 +39,11 @@ public class CustomerEntity {
         return this;
     }
 
-    public Long getAddressId() {
+    public Integer getAddressId() {
         return addressId;
     }
 
-    public CustomerEntity setAddressId(Long addressId) {
+    public CustomerEntity setAddressId(Integer addressId) {
         this.addressId = addressId;
         return this;
     }

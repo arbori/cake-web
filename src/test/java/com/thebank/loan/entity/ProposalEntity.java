@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Objects;
 
 public class ProposalEntity {
-    private Long id;
-    private Long customerId;
+    private Integer id;
+    private Integer customerId;
     private BigDecimal amount;
     private Integer numberOfInstallments;
     private BigDecimal monthlyInterestRate; // ex: 0.02 para 2% ao mês
@@ -16,20 +16,20 @@ public class ProposalEntity {
     private RiskAssessmentEntity riskAssessment;
     private List<InstallmentEntity> installments = new ArrayList<>();
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
-    public ProposalEntity setId(Long id) {
+    public ProposalEntity setId(Integer id) {
         this.id = id;
         return this;
     }
 
-    public Long getCustomerId() {
+    public Integer getCustomerId() {
         return customerId;
     }
 
-    public ProposalEntity setCustomerId(Long customerId) {
+    public ProposalEntity setCustomerId(Integer customerId) {
         this.customerId = customerId;
         return this;
     }

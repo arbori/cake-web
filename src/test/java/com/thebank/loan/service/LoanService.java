@@ -36,7 +36,7 @@ public class LoanService {
     }
 
     // CRUD Customer
-    public CustomerEntity createCustomer(String name, BigDecimal salary, Long addressId) {
+    public CustomerEntity createCustomer(String name, BigDecimal salary, Integer addressId) {
         if (!addressRepository.existsById(addressId)) {
             throw new IllegalArgumentException("Address not found");
         }
@@ -48,7 +48,7 @@ public class LoanService {
         return customerRepository.save(customer);
     }
 
-    public Optional<CustomerEntity> getCustomer(Long id) {
+    public Optional<CustomerEntity> getCustomer(Integer id) {
         return customerRepository.findById(id);
     }
 
@@ -56,7 +56,7 @@ public class LoanService {
         return customerRepository.findAll();
     }
 
-    public CustomerEntity updateCustomer(Long id, String name, BigDecimal salary, Long addressId) {
+    public CustomerEntity updateCustomer(Integer id, String name, BigDecimal salary, Integer addressId) {
         CustomerEntity customer = customerRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
         
@@ -71,7 +71,7 @@ public class LoanService {
         return customerRepository.save(customer);
     }
 
-    public void deleteCustomer(Long id) {
+    public void deleteCustomer(Integer id) {
         customerRepository.deleteById(id);
     }
 
@@ -86,7 +86,7 @@ public class LoanService {
         return addressRepository.save(address);
     }
 
-    public Optional<AddressEntity> getAddress(Long id) {
+    public Optional<AddressEntity> getAddress(Integer id) {
         return addressRepository.findById(id);
     }
 
@@ -94,7 +94,7 @@ public class LoanService {
         return addressRepository.findAll();
     }
 
-    public AddressEntity updateAddress(Long id, String zipcode, String street, String city, String state) {
+    public AddressEntity updateAddress(Integer id, String zipcode, String street, String city, String state) {
         AddressEntity address = addressRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Address not found"));
         if (zipcode != null) address.setZipcode(zipcode);
@@ -104,12 +104,12 @@ public class LoanService {
         return addressRepository.save(address);
     }
 
-    public void deleteAddress(Long id) {
+    public void deleteAddress(Integer id) {
         addressRepository.deleteById(id);
     }
 
     // Requisição de empréstimo com análise de risco
-    public ProposalEntity requestLoan(Long customerId, BigDecimal amount, int installments,
+    public ProposalEntity requestLoan(Integer customerId, BigDecimal amount, int installments,
                                    BigDecimal monthlyRate, LocalDate requestDate) {
         CustomerEntity customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
@@ -162,7 +162,7 @@ public class LoanService {
     }
 
     // Pagamento de prestação
-    public void payInstallment(Long installmentId, LocalDate paymentDate) {
+    public void payInstallment(Integer installmentId, LocalDate paymentDate) {
         InstallmentEntity installment = installmentRepository.findById(installmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Installment not found"));
         if (installment.getPaidDate() != null) {
@@ -176,7 +176,7 @@ public class LoanService {
     }
 
     // Liquidação antecipada – calcula o valor presente das parcelas restantes
-    public BigDecimal earlySettlementValue(Long loanRequestId, LocalDate settlementDate) {
+    public BigDecimal earlySettlementValue(Integer loanRequestId, LocalDate settlementDate) {
         ProposalEntity loan = loanRequestRepository.findById(loanRequestId)
                 .orElseThrow(() -> new IllegalArgumentException("Loan not found"));
         List<InstallmentEntity> installments = installmentRepository.findByLoanRequestId(loanRequestId);

@@ -3,6 +3,7 @@ package cake.web.exchange.content;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 public class Convertion {
     private Convertion() {
@@ -110,5 +111,16 @@ public class Convertion {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static <T> T convertToEnum(String value, Class<?> targetType) {
         return (T) Enum.valueOf((Class<? extends Enum>) targetType.asSubclass(Enum.class), value);
+    }
+
+    public static List<Object> convertPathParams(List<String> pathParams, Class<?>[] parameterTypes) {
+        List<Object> convertedArgs = new java.util.ArrayList<>();
+        
+        for (int i = 0; i < parameterTypes.length; i++) {
+            String paramValue = i < pathParams.size() ? pathParams.get(i) : null;
+            convertedArgs.add(Convertion.convert(paramValue, parameterTypes[i]));
+        }
+        
+        return convertedArgs;
     }
 }

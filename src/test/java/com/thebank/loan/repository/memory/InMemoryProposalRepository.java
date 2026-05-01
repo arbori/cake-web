@@ -5,15 +5,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.thebank.loan.entity.ProposalEntity;
 import com.thebank.loan.repository.ProposalRepository;
 import com.thebank.loan.repository.Repository;
 
-public class InMemoryProposalRepository implements Repository<ProposalEntity, Long>, ProposalRepository {
-    private final Map<Long, ProposalEntity> store = new ConcurrentHashMap<>();
-    private final AtomicLong idGenerator = new AtomicLong(1);
+public class InMemoryProposalRepository implements Repository<ProposalEntity, Integer>, ProposalRepository {
+    private final Map<Integer, ProposalEntity> store = new ConcurrentHashMap<>();
+    private final AtomicInteger idGenerator = new AtomicInteger(1);
+
+    private static InMemoryProposalRepository instance;
+
+    private InMemoryProposalRepository() {
+        // Private constructor to prevent instantiation
+    }
+
+    public static synchronized InMemoryProposalRepository instance() {
+        if (instance == null) {
+            instance = new InMemoryProposalRepository();
+        }
+        return instance;
+    }
 
     @Override
     public ProposalEntity save(ProposalEntity entity) {
@@ -25,7 +38,7 @@ public class InMemoryProposalRepository implements Repository<ProposalEntity, Lo
     }
 
     @Override
-    public Optional<ProposalEntity> findById(Long id) {
+    public Optional<ProposalEntity> findById(Integer id) {
         return Optional.ofNullable(store.get(id));
     }
 
@@ -35,12 +48,12 @@ public class InMemoryProposalRepository implements Repository<ProposalEntity, Lo
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(Integer id) {
         store.remove(id);
     }
 
     @Override
-    public boolean existsById(Long id) {
+    public boolean existsById(Integer id) {
         return store.containsKey(id);
     }
 }
