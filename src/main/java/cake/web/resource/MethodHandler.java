@@ -1,6 +1,8 @@
 package cake.web.resource;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -8,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import cake.web.exchange.HttpMethodName;
 import cake.web.exchange.content.Convertion;
-import cake.web.exchange.content.MethodResolution;
 
 /**
  * A utility class responsible for resolving the appropriate method on a resource
@@ -106,12 +107,13 @@ public class MethodHandler {
             throw new NoSuchMethodException("Parameter count cannot be negative");
         }
 
-        Object resourceInstance;
-
         try {
-            resourceInstance = resourceClass.getConstructor().newInstance();
-        } catch (Exception e) {
-            throw new NoSuchMethodException("Failed to instantiate resource class: " + resourceClass.getName() + ". Ensure it has a public no-arg constructor.");
+            Constructor<?> ctor = resourceClass.getConstructor();  // ✅ Only checks, no instantiation
+            if (!Modifier.isPublic(ctor.getModifiers())) {
+                throw new NoSuchMethodException("Resource class: " + resourceClass.getName() + " has no public no-arg constructor.");
+            }
+        } catch (NoSuchMethodException _) {
+            throw new NoSuchMethodException("Failed to get the constructor of resource class: " + resourceClass.getName() + ".\nEnsure it has a public no-arg constructor.");
         }
 
         List<Method> matchingMethods = Arrays.stream(resourceClass.getMethods())

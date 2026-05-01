@@ -116,7 +116,7 @@ public class Convertion {
     public static List<Object> convertPathParams(List<String> pathParams, Class<?>[] parameterTypes) {
         List<Object> convertedArgs = new java.util.ArrayList<>();
         
-        for (int i = 0; i < parameterTypes.length; i++) {
+        for (int i = 0; i < pathParams.size(); i++) {
             String paramValue = i < pathParams.size() ? pathParams.get(i) : null;
             convertedArgs.add(Convertion.convert(paramValue, parameterTypes[i]));
         }

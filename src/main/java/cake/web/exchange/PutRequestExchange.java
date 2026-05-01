@@ -7,7 +7,7 @@ import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 
 import cake.web.exception.HttpMethodException;
-import cake.web.exchange.content.MethodResolution;
+import cake.web.resource.MethodResolution;
 
 public final class PutRequestExchange extends AbstractRequestExchange {
     public PutRequestExchange(HttpServletRequest request) throws IOException {

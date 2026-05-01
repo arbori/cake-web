@@ -21,8 +21,8 @@ import cake.web.exception.MethodInvocationException;
 import cake.web.exception.NotFoundException;
 import cake.web.exception.ResourceResolutionException;
 import cake.web.exchange.content.Convertion;
-import cake.web.exchange.content.MethodResolution;
 import cake.web.resource.BaseResource;
+import cake.web.resource.MethodResolution;
 
 /**
  * Abstract base class for handling HTTP request exchanges.

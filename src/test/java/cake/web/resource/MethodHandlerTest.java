@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import cake.web.exchange.HttpMethodName;
-import cake.web.exchange.content.MethodResolution;
 
 class MethodHandlerTest {
 

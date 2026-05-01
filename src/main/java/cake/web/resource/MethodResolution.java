@@ -1,4 +1,4 @@
-package cake.web.exchange.content;
+package cake.web.resource;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

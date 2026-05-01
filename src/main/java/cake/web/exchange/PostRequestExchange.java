@@ -5,7 +5,7 @@ import java.lang.reflect.InvocationTargetException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import cake.web.exception.HttpMethodException;
-import cake.web.exchange.content.MethodResolution;
+import cake.web.resource.MethodResolution;
 
 public class PostRequestExchange extends AbstractRequestExchange {
     public PostRequestExchange(HttpServletRequest request) throws IOException {
