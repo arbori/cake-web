@@ -3,6 +3,7 @@ package cake.web.resource;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class MethodHandler {
         
         if(pathParams == null) {
             throw new NoSuchMethodException("Path parameters list cannot be null");
-        }
+        }        
         
         String methodName = httpMethodName.toString().toLowerCase();
         int paramCount = pathParams.size();
@@ -57,31 +58,31 @@ public class MethodHandler {
         // First, find the unique method by name and parameter count
         Method resolvedMethod = methodCache.get(cacheKey);
 
-        if (resolvedMethod == null) {
-            resolvedMethod = findMethodByExactParamCount(resourceClass, methodName, paramCount);
-            methodCache.put(cacheKey, resolvedMethod);
-        } else {
-            // Cache hit - verify that the method still matches the expected parameter count
-            if (resolvedMethod.getParameterCount() != paramCount) {
-                // Cache entry is stale - remove and resolve again
-                methodCache.remove(cacheKey);
+        MethodResolution resolution = null;
 
-                resolvedMethod = findMethodByExactParamCount(resourceClass, methodName, paramCount);
+        if (resolvedMethod == null) {        
+            resolution = TypeResolver.methodResolution(resourceClass, httpMethodName, pathParams); // Validate method resolution first (throws if no method or ambiguous)
 
-                methodCache.put(cacheKey, resolvedMethod);
-            }
-        }
+            methodCache.put(cacheKey, resolution.method());
+        } 
+        
+        return resolution;
+    }
 
-        // Convert path parameters and return
-        List<Object> convertedArgs;
-
-        try {
-            convertedArgs = Convertion.convertPathParams(pathParams, resolvedMethod.getParameterTypes());
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to convert path parameters for method: " + resolvedMethod.getName(), e);
-        }
-
-        return new MethodResolution(resolvedMethod, convertedArgs);
+    /**
+     * Builds a cache key based on the resource class name, HTTP method name, and parameter count.
+     * @param resourceClass the class of the resource
+     * @param httpMethodName the HTTP method name (e.g., GET, POST)
+     * @param paramCount the number of parameters
+     * @return a unique cache key string
+     */
+    private String buildCacheKey(Class<?> resourceClass, String httpMethodName, int paramCount) {
+        return new StringBuilder(resourceClass.getName())
+            .append("#")
+            .append(httpMethodName)
+            .append("#")
+            .append(paramCount)
+            .toString();
     }
     
     /**
@@ -150,22 +151,6 @@ public class MethodHandler {
         }
         
         return matchingMethods.get(0);
-    }
-
-    /**
-     * Builds a cache key based on the resource class name, HTTP method name, and parameter count.
-     * @param resourceClass the class of the resource
-     * @param httpMethodName the HTTP method name (e.g., GET, POST)
-     * @param paramCount the number of parameters
-     * @return a unique cache key string
-     */
-    private String buildCacheKey(Class<?> resourceClass, String httpMethodName, int paramCount) {
-        return new StringBuilder(resourceClass.getName())
-            .append("#")
-            .append(httpMethodName)
-            .append("#")
-            .append(paramCount)
-            .toString();
     }
 
     /**

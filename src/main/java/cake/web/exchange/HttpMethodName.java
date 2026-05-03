@@ -2,13 +2,18 @@ package cake.web.exchange;
 
 public enum HttpMethodName {
     GET("get"),
+    HEAD("head"),
     POST("post"),
     PUT("put"),
-    DELETE("delete");
+    DELETE("delete"),
+    CONNECT("connect"),
+    OPTIONS("options"),
+    TRACE("trace"),
+    PATCH("patch");
 
     private final String methodName;
 
-    HttpMethodName(String methodName) {
+    private HttpMethodName(String methodName) {
         this.methodName = methodName;
     }
 

@@ -1,11 +1,15 @@
 package cake.web.resource;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
+import cake.web.exchange.HttpMethodName;
 import cake.web.exchange.content.Convertion;
 
 /**
@@ -22,42 +26,54 @@ public class TypeResolver {
      * Finds methods that match the given path parameters based on type compatibility.
      * 
      * @param resourceClass the class containing the methods
-     * @param methodName the HTTP method name (get, post, put, delete)
+     * @param httpMethodName the HTTP method name (get, post, put, delete)
      * @param pathParams the path parameter values from the request
      * @return List of methods that are compatible with the path parameters
      * @throws NoSuchMethodException if no compatible method is found or if the call is ambiguous
      */
-    public static MethodResolution methodResolution(Class<?> resourceClass, String methodName, List<String> pathParams) throws NoSuchMethodException {
-        if(resourceClass == null || methodName == null || pathParams == null) {
+    public static MethodResolution methodResolution(Class<?> resourceClass, HttpMethodName httpMethodName, List<String> pathParams) throws NoSuchMethodException {
+        if(resourceClass == null || httpMethodName == null || pathParams == null) {
             throw new IllegalArgumentException("Arguments cannot be null");
         }
         
+        try {
+            Constructor<?> ctor = resourceClass.getConstructor();  // ✅ Only checks, no instantiation
+            if (!Modifier.isPublic(ctor.getModifiers())) {
+                throw new NoSuchMethodException("Resource class: " + resourceClass.getName() + " has no public no-arg constructor.");
+            }
+        } catch (NoSuchMethodException _) {
+            throw new NoSuchMethodException("Failed to get the constructor of resource class: " + resourceClass.getName() + ".\nEnsure it has a public no-arg constructor.");
+        }
+
         List<Method> filteredMethods = Arrays.stream(resourceClass.getMethods())
-            .filter(m -> m.getName().equals(methodName))
+            .filter(m -> (
+                java.lang.reflect.Modifier.isPublic(m.getModifiers()) &&
+                !java.lang.reflect.Modifier.isStatic(m.getModifiers()) &&
+                m.getName().equals(httpMethodName.toString())))
             .toList();
         
 
         List<MethodResolution> candidates = new ArrayList<>();
-        List<Object> parameterData = null;
+        Optional<List<Object>> parameterData;
 
         for(Method m: filteredMethods) {
             parameterData = createParameterDataList(m, pathParams);
 
-            if(!parameterData.isEmpty()) {
-                candidates.add(new MethodResolution(m, parameterData));
+            if(parameterData.isPresent()) {
+                candidates.add(new MethodResolution(m, parameterData.get()));
             }
         }
 
         if (candidates.isEmpty()) {
             throw new NoSuchMethodException(
-                "No method named '" + methodName + "' in " + resourceClass.getName() + 
+                "No method named '" + httpMethodName + "' in " + resourceClass.getName() + 
                 " compatible with path parameters: " + pathParams
             );
         }
 
         if (candidates.size() > 1) {
             throw new NoSuchMethodException(
-                "Ambiguous call: multiple methods named '" + methodName + "' in " + 
+                "Ambiguous call: multiple methods named '" + httpMethodName + "' in " + 
                 resourceClass.getName() + " are compatible with path parameters: " + pathParams
             );
         }
@@ -71,23 +87,23 @@ public class TypeResolver {
      * @param pathParams the path parameter values from the request
      * @return List of DataType objects containing the target type and converted value for each parameter
      */
-    private static List<Object> createParameterDataList(Method method, List<String> pathParams) {
+    private static Optional<List<Object>> createParameterDataList(Method method, List<String> pathParams) {
         if(method == null || pathParams == null) {
-            return List.of();
+            return Optional.empty();
         }
 
         Class<?>[] parameterTypes = method.getParameterTypes();
 
         if (pathParams.size() != parameterTypes.length) {
-            return List.of();
+            return Optional.empty();
         }
 
         try {
-            return IntStream.range(0, pathParams.size())
+            return Optional.of(IntStream.range(0, pathParams.size())
                 .mapToObj(n -> Convertion.convert(pathParams.get(n), parameterTypes[n]))
-                .toList();
+                .toList());
         } catch (Exception _) {
-            return List.of();
+            return Optional.empty();
         }
     }
 }

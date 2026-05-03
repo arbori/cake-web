@@ -7,32 +7,34 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-class TypeResolverTest {
+import cake.web.exchange.HttpMethodName;
 
+class TypeResolverTest {
     // ==================== TEST RESOURCE CLASSES ====================
 
     public static class SimpleResource {
         public void get() { /* only test */ }
         public void get(Integer id) { /* only test */ }
         public void get(String name) { /* only test */ }
-        public void get(Long id) { /* only test */ }
         public void post(String name, Integer age) { /* only test */ }
         public void put(Integer id, String value) { /* only test */ }
         public void delete(UUID uuid) { /* only test */ }
     }
-
+    
     public static class OverloadedResource {
-        public void search(Integer id) { /* only test */ }
-        public void search(String name) { /* only test */ }
-        public void search(Long id, Integer page) { /* only test */ }
-        public void search(String query, Integer page) { /* only test */ }
+        public void options(Integer id) { /* only test */ }
+        public void options(Long id) { /* only test */ }
+        public void options(String name) { /* only test */ }
+        public void options(Long id, Integer page) { /* only test */ }
+        public void options(Short query, Integer page) { /* only test */ }
     }
 
     public static class MixedTypesResource {
-        public void find(Integer id, String name) { /* only test */ }
-        public void find(String name, Integer id) { /* only test */ }
-        public void find(Integer id, Integer age) { /* only test */ }
-        public void find(String firstName, String lastName) { /* only test */ }
+        public void post(Integer id, String name) { /* only test */ }
+        public void post(Long id, String name) { /* only test */ }
+        public void post(String name, Integer id) { /* only test */ }
+        public void post(Integer id, Integer age) { /* only test */ }
+        public void post(String firstName, String lastName) { /* only test */ }
     }
 
     public static class NoDefaultConstructorResource {
@@ -44,6 +46,16 @@ class TypeResolverTest {
         // No methods
     }
 
+    static class NonPublicConstructorResource {
+        private NonPublicConstructorResource() { }
+        public void get() { /* only test */ }
+    }
+
+    public static class StaticResourceMethod {
+        public static void get() { /* only test */ }
+    }
+
+
     // ==================== SUCCESS CASES ====================
 
     @Test
@@ -53,7 +65,7 @@ class TypeResolverTest {
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
-            SimpleResource.class, "get", pathParams
+            SimpleResource.class, HttpMethodName.GET, pathParams
         );
         
         // Assert
@@ -70,7 +82,7 @@ class TypeResolverTest {
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
-            SimpleResource.class, "get", pathParams
+            SimpleResource.class, HttpMethodName.GET, pathParams
         );
         
         // Assert
@@ -88,7 +100,7 @@ class TypeResolverTest {
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
-            SimpleResource.class, "get", pathParams
+            SimpleResource.class, HttpMethodName.GET, pathParams
         );
         
         // Assert
@@ -106,7 +118,7 @@ class TypeResolverTest {
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
-            SimpleResource.class, "post", pathParams
+            SimpleResource.class, HttpMethodName.POST, pathParams
         );
         
         // Assert
@@ -127,7 +139,7 @@ class TypeResolverTest {
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
-            SimpleResource.class, "delete", pathParams
+            SimpleResource.class, HttpMethodName.DELETE, pathParams
         );
         
         // Assert
@@ -146,10 +158,10 @@ class TypeResolverTest {
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            TypeResolver.methodResolution(OverloadedResource.class, "search", pathParams)
+            TypeResolver.methodResolution(OverloadedResource.class, HttpMethodName.OPTIONS, pathParams)
         );
         
-        assertTrue(exception.getMessage().contains("ambiguous"));
+        assertTrue(exception.getMessage().toLowerCase().contains("ambiguous"));
     }
 
     @Test
@@ -159,10 +171,10 @@ class TypeResolverTest {
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            TypeResolver.methodResolution(OverloadedResource.class, "search", pathParams)
+            TypeResolver.methodResolution(OverloadedResource.class, HttpMethodName.OPTIONS, pathParams)
         );
         
-        assertTrue(exception.getMessage().contains("ambiguous"));
+        assertTrue(exception.getMessage().toLowerCase().contains("ambiguous"));
     }
 
     // ==================== NOT FOUND CASES ====================
@@ -174,11 +186,10 @@ class TypeResolverTest {
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            TypeResolver.methodResolution(SimpleResource.class, "nonexistent", pathParams)
+            TypeResolver.methodResolution(EmptyResource.class, HttpMethodName.HEAD, pathParams)
         );
         
-        assertTrue(exception.getMessage().contains("No compatible method"));
-        assertTrue(exception.getMessage().contains("nonexistent"));
+        assertTrue(exception.getMessage().toLowerCase().contains("no method named"));
     }
 
     @Test
@@ -188,36 +199,23 @@ class TypeResolverTest {
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            TypeResolver.methodResolution(SimpleResource.class, "get", pathParams)
+            TypeResolver.methodResolution(SimpleResource.class, HttpMethodName.GET, pathParams)
         );
         
-        assertTrue(exception.getMessage().contains("No compatible method"));
-    }
-
-    @Test
-    void shouldThrowExceptionWhenResourceClassHasNoMethods() {
-        // Arrange
-        List<String> pathParams = List.of();
-        
-        // Act & Assert
-        NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            TypeResolver.methodResolution(EmptyResource.class, "get", pathParams)
-        );
-        
-        assertTrue(exception.getMessage().contains("No compatible method"));
+        assertTrue(exception.getMessage().toLowerCase().contains("no method named"));
     }
 
     @Test
     void shouldThrowExceptionWhenParameterTypesDoNotMatch() {
         // Arrange
-        List<String> pathParams = List.of("not a number");
+        List<String> pathParams = List.of("not a number", "also not a number");
         
         // Act & Assert - SimpleResource has get(Integer) but value is not a number
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            TypeResolver.methodResolution(SimpleResource.class, "get", pathParams)
+            TypeResolver.methodResolution(OverloadedResource.class, HttpMethodName.OPTIONS, pathParams)
         );
         
-        assertTrue(exception.getMessage().contains("No compatible method"));
+        assertTrue(exception.getMessage().toLowerCase().contains("no method named"));
     }
 
     // ==================== NULL AND EDGE CASES ====================
@@ -227,7 +225,7 @@ class TypeResolverTest {
         List<String> pathParams = List.of();
         
         assertThrows(IllegalArgumentException.class, () ->
-            TypeResolver.methodResolution(null, "get", pathParams)
+            TypeResolver.methodResolution(null, HttpMethodName.GET, pathParams)
         );
     }
 
@@ -243,7 +241,7 @@ class TypeResolverTest {
     @Test
     void shouldThrowExceptionWhenPathParamsIsNull() {
         assertThrows(IllegalArgumentException.class, () ->
-            TypeResolver.methodResolution(SimpleResource.class, "get", null)
+            TypeResolver.methodResolution(SimpleResource.class, HttpMethodName.GET, null)
         );
     }
 
@@ -254,7 +252,7 @@ class TypeResolverTest {
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
-            SimpleResource.class, "get", pathParams
+            SimpleResource.class, HttpMethodName.GET, pathParams
         );
         
         // Assert
@@ -265,23 +263,6 @@ class TypeResolverTest {
     // ==================== TYPE SPECIFICITY CASES ====================
 
     @Test
-    void shouldPreferIntegerOverLongWhenBothCompatible() throws Exception {
-        // SimpleResource has: get(Integer) and get(Long)
-        // "123" fits in both Integer and Long
-        // Should match the first one found? Actually Convertion.convert returns Integer for "123"
-        // So get(Integer) should match
-        
-        List<String> pathParams = List.of("123");
-        
-        MethodResolution resolution = TypeResolver.methodResolution(
-            SimpleResource.class, "get", pathParams
-        );
-        
-        assertNotNull(resolution);
-        assertEquals(Integer.class, resolution.method().getParameterTypes()[0]);
-    }
-
-    @Test
     void shouldMatchStringWhenNumericConversionFails() throws Exception {
         // SimpleResource has: get(String) and get(Integer)
         // "abc" cannot be Integer, so should match get(String)
@@ -289,7 +270,7 @@ class TypeResolverTest {
         List<String> pathParams = List.of("abc");
         
         MethodResolution resolution = TypeResolver.methodResolution(
-            SimpleResource.class, "get", pathParams
+            SimpleResource.class, HttpMethodName.GET, pathParams
         );
         
         assertNotNull(resolution);
@@ -298,18 +279,40 @@ class TypeResolverTest {
     }
 
     @Test
-    void shouldResolveWhenMethodHasMixedParameterTypes() throws Exception {
-        // MixedTypesResource has multiple find methods
-        // find(Integer id, String name) and find(String name, Integer id)
+    void shouldResolveWhenMethodHasMixedParameterTypes() {
+        // MixedTypesResource has multiple post methods
+        // post(Integer id, String name) and post(String name, Integer id)
         // With pathParams ["123", "john"], both are compatible
         // Should be ambiguous
         
         List<String> pathParams = List.of("123", "john");
         
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            TypeResolver.methodResolution(MixedTypesResource.class, "find", pathParams)
+            TypeResolver.methodResolution(MixedTypesResource.class, HttpMethodName.POST, pathParams)
         );
         
-        assertTrue(exception.getMessage().contains("ambiguous"));
+        assertTrue(exception.getMessage().toLowerCase().contains("ambiguous"));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenResourceClassHasNoPublicNoArgConstructor() {
+        List<String> pathParams = List.of();    
+     
+        NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
+            TypeResolver.methodResolution(NoDefaultConstructorResource.class, HttpMethodName.GET, pathParams)
+        );
+     
+        assertTrue(exception.getMessage().contains("Failed to get the constructor of resource class"));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenResourceClassHasStaticMethod() {
+        List<String> pathParams = List.of();    
+     
+        NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
+            TypeResolver.methodResolution(StaticResourceMethod.class, HttpMethodName.GET, pathParams)
+        );
+     
+        assertTrue(exception.getMessage().toLowerCase().contains("no method named"));
     }
 }
