@@ -3,11 +3,7 @@ package cake.web.resource;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
-
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import cake.web.exchange.HttpMethodName;
 
 class MethodHandlerTest {
@@ -48,7 +44,7 @@ class MethodHandlerTest {
             // This would be the actual implementation
             // For now, we'll test via the concrete implementation
             MethodHandler handler = new MethodHandler();
-            return handler.findHttpMethod(resourceClass, pathParams, httpMethodName);
+            return handler.findHttpMethod(resourceClass, httpMethodName, pathParams);
         }
     }
 
@@ -68,13 +64,6 @@ class MethodHandlerTest {
 
     public static class EmptyResource {}
 
-    // ==================== START CONFIGURATION ====================
-
-    @BeforeEach
-    void setUp() {
-        MethodHandler.clearCache();
-    }
-
     // ==================== SUCCESS CASES ====================
 
     @Test
@@ -83,7 +72,7 @@ class MethodHandlerTest {
         MethodHandler handler = new MethodHandler();
         
         // Act
-        MethodResolution resolution = handler.findHttpMethod(SimpleResource.class, List.of(), HttpMethodName.GET);
+        MethodResolution resolution = handler.findHttpMethod(SimpleResource.class, HttpMethodName.GET, List.of());
         
         // Assert
         assertNotNull(resolution);
@@ -97,7 +86,7 @@ class MethodHandlerTest {
         MethodHandler handler = new MethodHandler();
         
         // Act
-        MethodResolution resolution = handler.findHttpMethod(SimpleResource.class, List.of("john"), HttpMethodName.POST);
+        MethodResolution resolution = handler.findHttpMethod(SimpleResource.class, HttpMethodName.POST, List.of("john"));
         
         // Assert
         assertNotNull(resolution);
@@ -114,8 +103,8 @@ class MethodHandlerTest {
         // Act
         MethodResolution resolution = handler.findHttpMethod(
             SimpleResource.class, 
-            List.of("123", "value"), 
-            HttpMethodName.PUT
+            HttpMethodName.PUT,
+            List.of("123", "value")
         );
         
         // Assert
@@ -132,7 +121,7 @@ class MethodHandlerTest {
         MethodHandler handler = new MethodHandler();
         
         // Act — HttpMethodName.GET is "get" (lowercase in enum)
-        MethodResolution resolution = handler.findHttpMethod(MixedCaseResource.class, List.of(), HttpMethodName.GET);
+        MethodResolution resolution = handler.findHttpMethod(MixedCaseResource.class, HttpMethodName.GET, List.of());
         
         // Assert
         assertNotNull(resolution);
@@ -145,10 +134,10 @@ class MethodHandlerTest {
         MethodHandler handler = new MethodHandler();
         
         // Act — first call (cache miss)
-        MethodResolution first = handler.findHttpMethod(SimpleResource.class, List.of("test"), HttpMethodName.POST);
+        MethodResolution first = handler.findHttpMethod(SimpleResource.class, HttpMethodName.POST, List.of("test"));
         
         // Second call (should be cache hit)
-        MethodResolution second = handler.findHttpMethod(SimpleResource.class, List.of("another"), HttpMethodName.POST);
+        MethodResolution second = handler.findHttpMethod(SimpleResource.class, HttpMethodName.POST, List.of("another"));
         
         // Assert — same method instance
         assertSame(first.method(), second.method());
@@ -160,8 +149,8 @@ class MethodHandlerTest {
         MethodHandler handler = new MethodHandler();
         
         // Act
-        MethodResolution getMethod = handler.findHttpMethod(SimpleResource.class, List.of("123"), HttpMethodName.GET);
-        MethodResolution postMethod = handler.findHttpMethod(SimpleResource.class, List.of("query"), HttpMethodName.POST);
+        MethodResolution getMethod = handler.findHttpMethod(SimpleResource.class, HttpMethodName.GET, List.of("123"));
+        MethodResolution postMethod = handler.findHttpMethod(SimpleResource.class, HttpMethodName.POST, List.of("query"));
         
         assertNotSame(getMethod.method(), postMethod.method());
         assertNotEquals(getMethod.method(), postMethod.method());
@@ -176,7 +165,7 @@ class MethodHandlerTest {
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            handler.findHttpMethod(AmbiguousResource.class, List.of("123"), HttpMethodName.POST)
+            handler.findHttpMethod(AmbiguousResource.class, HttpMethodName.POST, List.of("123"))
         );
         
         assertTrue(exception.getMessage().contains("Ambiguous"));
@@ -196,7 +185,7 @@ class MethodHandlerTest {
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            handler.findHttpMethod(OverloadedResource.class, List.of("1", "2"), HttpMethodName.DELETE)
+            handler.findHttpMethod(OverloadedResource.class, HttpMethodName.DELETE, List.of("1", "2"))
         );
         
         assertTrue(exception.getMessage().contains("Ambiguous"));
@@ -212,7 +201,7 @@ class MethodHandlerTest {
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            handler.findHttpMethod(SimpleResource.class, List.of(), HttpMethodName.DELETE)
+            handler.findHttpMethod(SimpleResource.class, HttpMethodName.DELETE, List.of())
         );
         
         assertTrue(exception.getMessage().contains("No method named 'delete'"));
@@ -226,7 +215,7 @@ class MethodHandlerTest {
         
         // Act & Assert — get() exists with 0 params, but we're passing 2 params
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            handler.findHttpMethod(SimpleResource.class, List.of("p1", "p2"), HttpMethodName.GET)
+            handler.findHttpMethod(SimpleResource.class, HttpMethodName.GET, List.of("p1", "p2"))
         );
         
         assertTrue(exception.getMessage().contains("No method named 'get'"));
@@ -239,7 +228,7 @@ class MethodHandlerTest {
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            handler.findHttpMethod(EmptyResource.class, List.of(), HttpMethodName.GET)
+            handler.findHttpMethod(EmptyResource.class, HttpMethodName.GET, List.of())
         );
         
         assertTrue(exception.getMessage().contains("No method named 'get'"));
@@ -258,7 +247,7 @@ class MethodHandlerTest {
         // lowercase match for HTTP method name, so "get" should be chosen.
         
         // Act & Assert — both exist with 0 params → ambiguous
-        MethodResolution resolution = handler.findHttpMethod(MixedCaseResource.class, List.of(), HttpMethodName.GET);
+        MethodResolution resolution = handler.findHttpMethod(MixedCaseResource.class, HttpMethodName.GET, List.of());
         
         
         assertNotNull(resolution);
@@ -278,7 +267,7 @@ class MethodHandlerTest {
         MethodHandler handler = new MethodHandler();
         
         // Resolve post(String) - one parameter
-        MethodResolution resolution1 = handler.findHttpMethod(SimpleResource.class, List.of("test"), HttpMethodName.POST);
+        MethodResolution resolution1 = handler.findHttpMethod(SimpleResource.class, HttpMethodName.POST, List.of("test"));
         
         // Clear cache and change method? Can't at runtime.
         // Instead, verify that a different method with same name but different count
@@ -293,43 +282,6 @@ class MethodHandlerTest {
         assertNotNull(resolution1);
     }
 
-    @Test
-    void clearCacheShouldRemoveAllEntries() throws Exception {
-        // Arrange
-        MethodHandler handler = new MethodHandler();
-        handler.findHttpMethod(SimpleResource.class, List.of(), HttpMethodName.GET);
-        handler.findHttpMethod(SimpleResource.class, List.of("test"), HttpMethodName.POST);
-        
-        int beforeSize = MethodHandler.getCacheSize();
-        assertTrue(beforeSize > 0);
-        
-        // Act
-        MethodHandler.clearCache();
-        
-        // Assert
-        assertEquals(0, MethodHandler.getCacheSize());
-    }
-
-    @Test
-    void clearCacheForClassShouldRemoveOnlyEntriesForThatClass() throws Exception {
-        // Arrange
-        MethodHandler handler = new MethodHandler();
-        
-        handler.findHttpMethod(SimpleResource.class, List.of(), HttpMethodName.GET);
-        handler.findHttpMethod(OverloadedResource.class, List.of("123"), HttpMethodName.POST);
-        
-        int beforeSize = MethodHandler.getCacheSize();
-        assertTrue(beforeSize >= 2);
-        
-        // Act
-        MethodHandler.clearCacheForClass(SimpleResource.class);
-        
-        // Assert
-        int afterSize = MethodHandler.getCacheSize();
-        assertTrue(afterSize < beforeSize);
-        assertTrue(afterSize > 0); // SimpleResource entries remain
-    }
-
     // ==================== EDGE CASES ====================
 
     @Test
@@ -339,7 +291,7 @@ class MethodHandlerTest {
         
         // Act & Assert — should treat as 0 parameters
         assertThrows(NoSuchMethodException.class, () ->
-            handler.findHttpMethod(SimpleResource.class, null, HttpMethodName.GET)
+            handler.findHttpMethod(SimpleResource.class, HttpMethodName.GET, null)
         );
         // Better to handle null gracefully — depends on implementation
     }
@@ -350,7 +302,7 @@ class MethodHandlerTest {
         MethodHandler handler = new MethodHandler();
         
         // Act
-        MethodResolution resolution = handler.findHttpMethod(SimpleResource.class, List.of(), HttpMethodName.GET);
+        MethodResolution resolution = handler.findHttpMethod(SimpleResource.class, HttpMethodName.GET, List.of());
         
         // Assert
         assertNotNull(resolution);
@@ -360,15 +312,17 @@ class MethodHandlerTest {
     @Test
     void shouldntHandleResourceWithPrivateMethods() {
         // Arrange
+        @SuppressWarnings("unused")
         class PrivateMethodResource {
             private void secret() { /* Only test */ }
             private void get() { /* Only test */ }
         }
+
         MethodHandler handler = new MethodHandler();
         
         // Act — getMethods() returns only public methods
         assertThrows(NoSuchMethodException.class, () -> 
-            handler.findHttpMethod(PrivateMethodResource.class, List.of(), HttpMethodName.GET),
+            handler.findHttpMethod(PrivateMethodResource.class, HttpMethodName.GET, List.of()),
             "Expected NoSuchMethodException for private methods because the framework handle only public methods"
         );
     }
@@ -379,7 +333,7 @@ class MethodHandlerTest {
         
         // Act — static methods are included in getMethods()
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () -> 
-            handler.findHttpMethod(StaticMethodResource.class, List.of(), HttpMethodName.GET)
+            handler.findHttpMethod(StaticMethodResource.class, HttpMethodName.GET, List.of())
         );
         
         assertTrue(exception.getMessage().contains("No method named 'get'"));
@@ -391,7 +345,7 @@ class MethodHandlerTest {
         MethodHandler handler = new MethodHandler();
         
         // Act
-        MethodResolution resolution = handler.findHttpMethod(Child.class, List.of(), HttpMethodName.GET);
+        MethodResolution resolution = handler.findHttpMethod(Child.class, HttpMethodName.GET, List.of());
         
         // Assert — getMethods() includes inherited methods
         assertNotNull(resolution);

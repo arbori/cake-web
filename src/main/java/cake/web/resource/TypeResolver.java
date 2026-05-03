@@ -75,13 +75,17 @@ public class TypeResolver {
                 "Ambiguous call: multiple methods named '" + httpMethodName + "' in " + 
                 resourceClass.getName() + " are compatible with path parameters: " + pathParams +
                 "\nCandidates: " + candidates.stream()
-                    .map(c -> java.util.Arrays.toString(c.method().getParameterTypes()))
+                    .map(c -> c.method().getName() + "(" + formatParamTypes(c.method().getParameterTypes()) + ")")
                     .reduce((a, b) -> a + "\n" + b)
                     .orElse("") 
             );
         }
 
         return candidates.getFirst(); // Return the single compatible method
+    }
+
+    private static String formatParamTypes(Class<?>[] types) {
+        return Arrays.stream(types).map(Class::getSimpleName).reduce((a,b) -> a + "," + b).orElse("");
     }
 
     /**

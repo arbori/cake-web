@@ -17,11 +17,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import jakarta.servlet.http.HttpServletRequest;
 
 import cake.web.exception.HttpMethodException;
-import cake.web.exception.MethodInvocationException;
 import cake.web.exception.NotFoundException;
 import cake.web.exception.ResourceResolutionException;
 import cake.web.exchange.content.Convertion;
-import cake.web.resource.BaseResource;
+import cake.web.resource.MethodHandler;
 import cake.web.resource.MethodResolution;
 
 /**
@@ -33,7 +32,8 @@ import cake.web.resource.MethodResolution;
  */
 abstract class AbstractRequestExchange {
     private static final Map<String, Class<?>> resourceCache = new ConcurrentHashMap<>();
-    private static final Map<String, Method> methodCache = new ConcurrentHashMap<>();
+
+    protected static final MethodHandler methodHandler = new MethodHandler();
 
     protected final List<String> tokens;
     protected List<String> pathParams;
@@ -170,56 +170,7 @@ abstract class AbstractRequestExchange {
             throw new ClassNotFoundException("No resource found for given URI");
         }
 
-        if(!queryParameterMap.isEmpty()) {
-            setAttributes(resource, queryParameterMap);
-        }
-
-        if(bodyContent != null && !bodyContent.isEmpty() && (resource instanceof BaseResource baseResource)) {
-            baseResource.setParameterMap(this.queryParameterMap);
-            baseResource.setRawBody(bodyContent.toString().trim());
-            baseResource.setHeaders(Map.copyOf(this.headers));
-            baseResource.setAuthToken(this.authToken);
-        }
-
         return resource;
-    }
-
-    /**
-     * Finds all methods in the given resource class that match the HTTP method name.
-     * 
-     * @param resourceClass  the class to search for methods
-     * @param pathParams     the list of path parameters as strings
-     * @param httpMethodName the HTTP method name (e.g., "get", "post")
-     * @return list of matching Methods
-     * @throws NoSuchMethodException if no suitable method is found
-     */
-    protected List<Method> findHttpMethodList(Class<?> resourceClass, HttpMethodName httpMethodName) throws NoSuchMethodException {
-        String partialCacheKey = methodCacheKey(resourceClass, httpMethodName, pathParams);
-            
-        List<Method> methodFoundedList = methodCache.entrySet().stream()
-            .filter(e -> e.getKey().startsWith(partialCacheKey))
-            .map(Map.Entry::getValue)
-            .toList();
-
-        if (!methodFoundedList.isEmpty()) {
-            return methodFoundedList;
-        }
-
-        methodFoundedList = Arrays.stream(resourceClass.getMethods())
-                .filter(m -> m.getName().equals(httpMethodName.toString()))
-                .toList();
-
-        if (methodFoundedList.isEmpty()) {
-            throw new NoSuchMethodException(
-                    "No suitable " + httpMethodName + "(...) for class " + resourceClass.getName());
-        }
-
-        methodFoundedList.forEach(m -> {
-            String cacheKey = methodCacheKey(resourceClass, HttpMethodName.valueOf(m.getName().toUpperCase()), pathParams);
-            methodCache.put(cacheKey, m);
-        });
-
-        return methodFoundedList;
     }
 
     /**
@@ -235,52 +186,11 @@ abstract class AbstractRequestExchange {
      */
     protected MethodResolution findHttpMethod(Class<?> resourceClass, List<String> pathParams, HttpMethodName httpMethodName)
             throws NoSuchMethodException, IllegalArgumentException {
-        List<Method> methodFoundedList = findHttpMethodList(resourceClass, httpMethodName);
-        List<Object> args = new ArrayList<>();
-        Object[] parameter = new Object[1];
-
-        if(this.bodyContent != null && httpMethodName != HttpMethodName.GET) {
-            // TODO: This is a temporary solution to pass the body content as a path parameter. May be the proper name should be unnamedParameters instead pathParamsms.
-            this.pathParams.add(this.bodyContent.toString());
-        }
-
-        Method methodFounded = methodFoundedList.stream()
-                .filter(m -> {
-                    Class<?>[] paramTypes = m.getParameterTypes();
-
-                    if( paramTypes.length != pathParams.size()) {
-                        return false;
-                    }
-
-                    try {
-                        for (int i = 0; i < paramTypes.length; i++) {
-                            parameter[0] = Convertion.convert(pathParams.get(i), paramTypes[i]);
-                            
-                            if(parameter[0] != null) {
-                                args.add(parameter[0]);
-                            }
-                        }
-                    } catch (IllegalArgumentException _) {
-                        return false;
-                    }
-
-                    return true;
-                })
-                .findFirst()
-                .orElse(null);
-
-        if (methodFounded == null) {
-            throw new IllegalArgumentException(
-                    "No suitable " + httpMethodName + "(...) for class " + resourceClass.getName()
-                            + " with " + pathParams.size() + " positional parameters and expected parameters type.");
-        }
-
-        String cacheKey = methodCacheKey(resourceClass, httpMethodName, pathParams);
-        methodCache.put(cacheKey, methodFounded);
+        MethodResolution methodResolution = methodHandler.findHttpMethod(resourceClass, httpMethodName, pathParams);
             
         pathParams.clear();
         
-        return new MethodResolution(methodFounded, args);
+        return methodResolution;
     }
 
     /**
@@ -307,39 +217,6 @@ abstract class AbstractRequestExchange {
             }
         });
     }
-
-    /**
-     * Invokes the given method on the resource instance with path parameters.
-     * It converts path parameters to the required types before invocation.
-     * 
-     * @param resource the object instance to invoke the method on
-     * @param method   the Method to invoke
-     * @return the result of the method invocation
-     * @throws MethodInvocationException if invocation fails
-     */
-    protected Object callHttpMethod(Object resource, Method method) {
-        try {
-            Object[] args = new Object[method.getParameterCount()];
-            for (int i = 0; i < args.length; i++) {
-                args[i] = Convertion.convert(pathParams.get(i), method.getParameterTypes()[i]);
-            }
-            pathParams.clear();
-
-            return method.invoke(resource, args);
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException re) {
-                // Business exception → propagate unchanged
-                throw re;
-            }
-            // Otherwise infra
-            throw new MethodInvocationException("Error invoking method: " + method.getName(), cause);
-        } catch (ReflectiveOperationException e) {
-            throw new MethodInvocationException("Failed to invoke method: " + method.getName(), e);
-        }
-    }
-
-    /// ---------- PRIVATE UTILITIES ---------- ///
 
     /**
      * Tokenizes the path after the contextPath, splitting on '/' and ignoring empty
@@ -541,50 +418,6 @@ abstract class AbstractRequestExchange {
         }
 
         return s;
-    }
-
-    /**
-     * Composes a cache key for method lookup based on resource class, HTTP method
-     * name, and path parameters.
-     * It includes inferred simple types of path parameters for uniqueness.
-     * 
-     * @param resourceClass  the resource class
-     * @param httpMethodName the HTTP method name
-     * @param pathParams     the list of path parameters as strings
-     * @return the composed cache key
-     */
-    private String methodCacheKey(Class<?> resourceClass, HttpMethodName httpMethodName, List<String> pathParams) {
-        // Compose key with param types if resolvable; uses path param values to attempt type inference
-        StringBuilder key = new StringBuilder(resourceClass.getName())
-            .append("#")
-            .append(httpMethodName)
-            .append("/")
-            .append(pathParams.size())
-            .append(":");
-
-        for (String p : pathParams) {
-            key.append("(").append(inferSimpleType(p)).append(")");
-        }
-
-        return key.toString();
-    }
-
-    /**
-     * Infers a simple type name from a string value using basic heuristics.
-     * Used for method cache key uniqueness.
-     * 
-     * @param v the input string value
-     * @return the inferred simple type name (e.g., "String", "Integer", "Long",
-     *         "Double")
-     */
-    private String inferSimpleType(String v) {
-        // heuristic: could be improved; used only for key uniqueness
-        if (v == null || v.isEmpty()) return "String";
-        if (v.matches("^-?\\d+$")) return "Integer";
-        if (v.matches("^-?\\d+L$")) return "Long";
-        if (v.matches("^-?\\d+\\.\\d+$")) return "Double";
-
-        return "String";
     }
 
     /**

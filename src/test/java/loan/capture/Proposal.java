@@ -2,6 +2,7 @@ package loan.capture;
 
 import java.util.Optional;
 
+import com.thebank.loan.entity.CustomerEntity;
 import com.thebank.loan.entity.ProposalEntity;
 import com.thebank.loan.repository.ProposalRepository;
 import com.thebank.loan.repository.memory.InMemoryProposalRepository;
@@ -26,5 +27,12 @@ public class Proposal {
         }    
     
         throw new ParameterNotFoundException("proposalId is required");
+    }
+
+    /**
+     * GET endpoint simulation
+     */
+    public ProposalEntity get(CustomerEntity customerEntity) throws ParameterNotFoundException {
+        throw new UnsupportedOperationException("This endpoint is not implemented yet");
     }
 }

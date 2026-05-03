@@ -16,6 +16,7 @@ public class Convertion {
     private static final String INTEGER_REGEX = "^-?\\d+$";
     private static final String FLOATING_POINT_REGEX = "^-?\\d+(\\.\\d+)?([eE][+-]?\\d+)?$";
     private static final String LOCAL_TIME_REGEX = "^\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?$";
+    private static final String LOCAL_DATE_REGEX = "^\\d{4}-\\d{2}-\\d{2}$";
     private static final String OFFSET_DATE_TIME_REGEX = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)$";
     private static final String OFFSET_TIME_REGEX = "^\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)$";
     private static final String ZONED_DATE_TIME_REGEX = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)(\\[.*\\])?$";
@@ -43,9 +44,10 @@ public class Convertion {
         
         // Check if the value looks like a date/time string (e.g., "2023-08-15T14:30:00Z", "14:30:00", "2023-08-15T14:30:00", etc.)
         if(value.matches(LOCAL_TIME_REGEX) ||
-                value.matches(OFFSET_DATE_TIME_REGEX) ||
-                value.matches(OFFSET_TIME_REGEX) ||
-                value.matches(ZONED_DATE_TIME_REGEX))
+            value.matches(LOCAL_DATE_REGEX) ||
+            value.matches(OFFSET_DATE_TIME_REGEX) ||
+            value.matches(OFFSET_TIME_REGEX) ||
+            value.matches(ZONED_DATE_TIME_REGEX))
         {
             return toDateTime(value, targetType);
         }
@@ -114,6 +116,8 @@ public class Convertion {
     private static Object toDateTime(String value, Class<?> targetType) {
         if (targetType == java.time.LocalTime.class)
             return java.time.LocalTime.parse(value);
+        if (targetType == java.time.LocalDate.class)
+            return java.time.LocalDate.parse(value);
         if (targetType == java.time.LocalDateTime.class)
             return java.time.LocalDateTime.parse(value);
         if (targetType == java.time.OffsetDateTime.class)
@@ -128,11 +132,11 @@ public class Convertion {
 
     // Helper method to convert string values to UUID type.
     private static Object toUUID(String value, Class<?> targetType) {
-        if (targetType == UUID.class) {
+        try{
             return UUID.fromString(value);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unsupported UUID type: " + targetType.getName(), e);
         }
-
-        throw new IllegalArgumentException("Unsupported UUID type: " + targetType.getName());
     }
 
     /**

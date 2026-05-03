@@ -1,9 +1,6 @@
 package cake.web.resource;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,7 +19,7 @@ import cake.web.exchange.content.Convertion;
  * changes its method signatures, stale cache entries are not reused.
  */
 public class MethodHandler {
-    
+    // Cache to store resolved methods based on resource class, HTTP method name, and parameter types
     private static final Map<String, Method> methodCache = new ConcurrentHashMap<>();
 
     /**
@@ -36,7 +33,7 @@ public class MethodHandler {
      * @throws NoSuchMethodException if no method is found, or if multiple methods match by name and parameter count
      * @throws IllegalArgumentException if path parameters cannot be converted to the required types
      */
-    public MethodResolution findHttpMethod(Class<?> resourceClass, List<String> pathParams, HttpMethodName httpMethodName) 
+    public MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName, List<String> pathParams) 
             throws NoSuchMethodException, IllegalArgumentException 
     {
         if(resourceClass == null) {
@@ -92,27 +89,5 @@ public class MethodHandler {
             .append(sb.toString())
             .append(")")
             .toString();
-    }
-    
-    /**
-     * Clear entire cache.
-     */
-    public static void clearCache() {
-        methodCache.clear();
-    }
-    
-    /**
-     * Clear cache for a specific resource class.
-     */
-    public static void clearCacheForClass(Class<?> resourceClass) {
-        String prefix = resourceClass.getName() + "#";
-        methodCache.keySet().removeIf(key -> key.startsWith(prefix));
-    }
-    
-    /**
-     * Get cache size for monitoring.
-     */
-    public static int getCacheSize() {
-        return methodCache.size();
     }
 }
