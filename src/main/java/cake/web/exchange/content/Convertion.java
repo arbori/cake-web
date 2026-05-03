@@ -2,11 +2,26 @@ package cake.web.exchange.content;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.UUID;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Convertion {
     private Convertion() {
         // static class
     }
+
+    private static final String INTEGER_REGEX = "^-?\\d+$";
+    private static final String FLOATING_POINT_REGEX = "^-?\\d+(\\.\\d+)?([eE][+-]?\\d+)?$";
+    private static final String LOCAL_TIME_REGEX = "^\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?$";
+    private static final String OFFSET_DATE_TIME_REGEX = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)$";
+    private static final String OFFSET_TIME_REGEX = "^\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)$";
+    private static final String ZONED_DATE_TIME_REGEX = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)(\\[.*\\])?$";
+    private static final String UUID_REGEX = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";
+
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Converts a string value to the specified target type. It supports basic types
@@ -17,51 +32,54 @@ public class Convertion {
      * @return the converted object of the target type
      */
     public static Object convert(String value, Class<?> targetType) {
-        if (value != null) {
-            try {
-                // Check if the targetType implements BodyContent and try to parse the value as
-                // JSON to that type.
-                if (BodyContent.class.isAssignableFrom(targetType)) {
-                    return ParserJson.parseJsonToObject(targetType, value);
-                }
-
-                // Check if the value looks like any integer value (byte, short, int, long)
-                if (value.matches("^-?\\d+$") || value.matches("^-?\\d+(\\.\\d+)?([eE][+-]?\\d+)?$")) {
-                    return toNumber(value, targetType);
-                }
-                else if(value.matches("^\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?$") ||
-                        value.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)$") ||
-                        value.matches("^\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)$") ||
-                        value.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)(\\[.*\\])?$"))
-                {
-                    return toDateTime(value, targetType);
-                }
-                else if (("true".equals(value.toLowerCase().trim()) || "false".equals(value.toLowerCase().trim())) && targetType == Boolean.class) {
-                    return Boolean.valueOf(value);
-                }
-
-                return toOthers(value, targetType);
-            } catch (Exception e) {
-                throw new IllegalArgumentException(
-                        "Unsupported parameter type: " + targetType.getName() + ", value: " + value, e);
-            }
+        if (value == null) {
+            return null;
         }
 
-        return null;
+        // Check if the value looks like any integer value (byte, short, int, long)
+        if (value.matches(INTEGER_REGEX) || value.matches(FLOATING_POINT_REGEX)) {
+            return toNumber(value, targetType);
+        }
+        
+        // Check if the value looks like a date/time string (e.g., "2023-08-15T14:30:00Z", "14:30:00", "2023-08-15T14:30:00", etc.)
+        if(value.matches(LOCAL_TIME_REGEX) ||
+                value.matches(OFFSET_DATE_TIME_REGEX) ||
+                value.matches(OFFSET_TIME_REGEX) ||
+                value.matches(ZONED_DATE_TIME_REGEX))
+        {
+            return toDateTime(value, targetType);
+        }
+
+        if (("true".equals(value.toLowerCase().trim()) || "false".equals(value.toLowerCase().trim())) && targetType == Boolean.class) {
+            return Boolean.valueOf(value);
+        }
+
+        if(value.matches(UUID_REGEX) && targetType == UUID.class) {
+            return toUUID(value, targetType);
+        }
+
+        // Check if the targetType implements BodyContent and try to parse the value as
+        // JSON to that type.
+        if (BodyContent.class.isAssignableFrom(targetType)) {
+            return toJson(value, targetType);
+        }
+
+        if (targetType == String.class || targetType == Object.class) {
+            return value;
+        }
+
+        throw new IllegalArgumentException("Unsupported parameter type: " + targetType.getName() + ", value: " + value);
     }
 
     // Overloaded method to convert a string value to the specified java.lang.Number type.
     private static Object toNumber(String value, Class<?> targetType) {
         // Check if the value looks like any integer value (byte, short, int, long)
-        if (value.matches("^-?\\d+$")) {
+        if (value.matches(INTEGER_REGEX)) {
             return toInteger(value, targetType);
         }
-        // Check floating point types
-        else if (value.matches("^-?\\d+(\\.\\d+)?([eE][+-]?\\d+)?$")) {
-            return toFloatPoint(value, targetType);
-        }
 
-        throw new IllegalArgumentException("Unsupported number type: " + targetType.getName());
+        // Should be a floating point type (float, double, BigDecimal)
+        return toFloatPoint(value, targetType);
     }
 
     // Helper methods to convert string values to specific integer types.
@@ -82,10 +100,10 @@ public class Convertion {
 
     // Helper methods to convert string values to specific floating point types.
     private static Object toFloatPoint(String value, Class<?> targetType) {
-        if (targetType == Double.class || targetType == double.class)
-            return Double.valueOf(value);
         if (targetType == Float.class || targetType == float.class)
             return Float.valueOf(value);
+        if (targetType == Double.class || targetType == double.class)
+            return Double.valueOf(value);
         if (targetType == java.math.BigDecimal.class)
             return new java.math.BigDecimal(value);
 
@@ -108,27 +126,45 @@ public class Convertion {
         throw new IllegalArgumentException("Unsupported date/time type: " + targetType.getName());
     }
 
-    // Helper method to convert string values to other types like String, Enum, Character, UUID, etc.
-    private static Object toOthers(String value, Class<?> targetType) {
-        if (targetType == String.class || targetType == Object.class) {
-            return value;
-        } else if (targetType.isEnum()) {
-            return convertToEnum(value, targetType);
-        } else if (value.length() != 1 && (targetType == Character.class)) {
-            return value.charAt(0);
-        } else if (targetType == java.util.UUID.class) {
-            return java.util.UUID.fromString(value);
+    // Helper method to convert string values to UUID type.
+    private static Object toUUID(String value, Class<?> targetType) {
+        if (targetType == UUID.class) {
+            return UUID.fromString(value);
         }
 
-        throw new IllegalArgumentException("Unsupported type: " + targetType.getName());
+        throw new IllegalArgumentException("Unsupported UUID type: " + targetType.getName());
     }
 
-    // Helper method to convert string values to enum types.
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private static <T> T convertToEnum(String value, Class<?> targetType) {
-        return (T) Enum.valueOf((Class<? extends Enum>) targetType.asSubclass(Enum.class), value);
+    /**
+     * Converts a JSON string to an instance of the specified target type. The JSON is expected to contain a single key that matches the simple name of the target type (case-insensitive), and the value of that key should be an object that can be deserialized into the target type.
+     * @param value the JSON string to convert
+     * @param targetType the class of the target type to convert to
+     * @return the converted object of the target type
+     */
+    private static Object toJson(String value, Class<?> targetType) {
+        // Convert to a key (e.g., "Customer" -> "customer")
+        String key = targetType.getSimpleName().toLowerCase();
+
+        try {
+            JsonNode rootNode = mapper.readTree(value);
+
+            if (rootNode.has(key)) {
+                // Parse only the subtree for this specific class
+                return mapper.treeToValue(rootNode.get(key), targetType);
+            } else {
+                throw new IllegalArgumentException("JSON does not contain expected object named: " + key);
+            }
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Invalid JSON format", e);
+        }
     }
 
+    /**
+     * Converts a list of string path parameters to their corresponding types based on the provided parameter types.
+     * @param pathParams the list of path parameter values as strings
+     * @param parameterTypes the array of target parameter types corresponding to each path parameter
+     * @return a list of converted objects matching the target parameter types
+     */
     public static List<Object> convertPathParams(List<String> pathParams, Class<?>[] parameterTypes) {
         List<Object> convertedArgs = new java.util.ArrayList<>();
 
@@ -138,6 +174,47 @@ public class Convertion {
         }
 
         return convertedArgs;
+    }
+
+    /**
+     * Determines the type of the given parameter value based on its format.
+     * @param value the parameter value as a string
+     * @return the type description of the parameter
+     */
+    public static String kindOfParamType(String value) {
+        if (value.matches(INTEGER_REGEX)) {
+            return "integer";
+        }
+
+        if (value.matches(FLOATING_POINT_REGEX)) {
+            return "floating-point";
+        }
+
+        if (value.matches(LOCAL_TIME_REGEX)) {
+            return "java.time.LocalTime";
+        }
+
+        if (value.matches(OFFSET_DATE_TIME_REGEX)) {
+            return "java.time.OffsetDateTime";
+        }
+
+        if (value.matches(OFFSET_TIME_REGEX)) {
+            return "java.time.OffsetTime";
+        }
+
+        if (value.matches(ZONED_DATE_TIME_REGEX)) {
+            return "java.time.ZonedDateTime";
+        }
+
+        if (value.matches(UUID_REGEX)) {
+            return "java.util.UUID";
+        }
+
+        if ("true".equals(value.toLowerCase().trim()) || "false".equals(value.toLowerCase().trim())) {
+            return "boolean";
+        }
+
+        return "string";
     }
 
     /**

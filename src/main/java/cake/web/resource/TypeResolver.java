@@ -51,7 +51,6 @@ public class TypeResolver {
                 !java.lang.reflect.Modifier.isStatic(m.getModifiers()) &&
                 m.getName().equals(httpMethodName.toString())))
             .toList();
-        
 
         List<MethodResolution> candidates = new ArrayList<>();
         Optional<List<Object>> parameterData;
@@ -74,7 +73,11 @@ public class TypeResolver {
         if (candidates.size() > 1) {
             throw new NoSuchMethodException(
                 "Ambiguous call: multiple methods named '" + httpMethodName + "' in " + 
-                resourceClass.getName() + " are compatible with path parameters: " + pathParams
+                resourceClass.getName() + " are compatible with path parameters: " + pathParams +
+                "\nCandidates: " + candidates.stream()
+                    .map(c -> java.util.Arrays.toString(c.method().getParameterTypes()))
+                    .reduce((a, b) -> a + "\n" + b)
+                    .orElse("") 
             );
         }
 

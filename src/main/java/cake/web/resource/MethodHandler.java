@@ -3,7 +3,6 @@ package cake.web.resource;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -46,21 +45,23 @@ public class MethodHandler {
         if(httpMethodName == null) {
             throw new IllegalArgumentException("HTTP method name cannot be null");
         }
-        
         if(pathParams == null) {
             throw new NoSuchMethodException("Path parameters list cannot be null");
         }        
         
         String methodName = httpMethodName.toString().toLowerCase();
-        int paramCount = pathParams.size();
-        String cacheKey = buildCacheKey(resourceClass, methodName, paramCount);
+        String cacheKey = buildCacheKey(resourceClass, methodName, pathParams);
                 
         // First, find the unique method by name and parameter count
         Method resolvedMethod = methodCache.get(cacheKey);
 
         MethodResolution resolution = null;
 
-        if (resolvedMethod == null) {        
+        if(resolvedMethod != null) {
+            List<Object> convertedArgs = Convertion.convertPathParams(pathParams, resolvedMethod.getParameterTypes());
+
+            resolution = new MethodResolution(resolvedMethod, convertedArgs);
+        } else {        
             resolution = TypeResolver.methodResolution(resourceClass, httpMethodName, pathParams); // Validate method resolution first (throws if no method or ambiguous)
 
             methodCache.put(cacheKey, resolution.method());
@@ -76,101 +77,32 @@ public class MethodHandler {
      * @param paramCount the number of parameters
      * @return a unique cache key string
      */
-    private String buildCacheKey(Class<?> resourceClass, String httpMethodName, int paramCount) {
+    private String buildCacheKey(Class<?> resourceClass, String httpMethodName, List<String> pathParams) {
+        StringBuilder sb = new StringBuilder();
+
+        if(!pathParams.isEmpty()) {
+            pathParams.forEach(param -> sb.append(Convertion.kindOfParamType(param)).append(","));
+            sb.setLength(sb.length() - 1); // Remove trailing comma
+        }
+
         return new StringBuilder(resourceClass.getName())
             .append("#")
             .append(httpMethodName)
-            .append("#")
-            .append(paramCount)
+            .append("(")
+            .append(sb.toString())
+            .append(")")
             .toString();
     }
     
     /**
-     * Finds a method on the resource class by exact name and parameter count.
-     * Throws an exception if zero or multiple methods are found.
-     * 
-     * @param resourceClass the class to inspect
-     * @param methodName the method name (case-sensitive, expected in lowercase)
-     * @param paramCount the exact number of parameters
-     * @return the unique matching method
-     * @throws NoSuchMethodException if no method found or multiple ambiguous methods found
-     */
-    private Method findMethodByExactParamCount(Class<?> resourceClass, String methodName, int paramCount) 
-            throws NoSuchMethodException {
-
-        if(resourceClass == null) {
-            throw new NoSuchMethodException("Resource class cannot be null");
-        }
-        if(methodName == null) {
-            throw new NoSuchMethodException("Method name cannot be null");
-        }
-        if(paramCount < 0) {
-            throw new NoSuchMethodException("Parameter count cannot be negative");
-        }
-
-        try {
-            Constructor<?> ctor = resourceClass.getConstructor();  // ✅ Only checks, no instantiation
-            if (!Modifier.isPublic(ctor.getModifiers())) {
-                throw new NoSuchMethodException("Resource class: " + resourceClass.getName() + " has no public no-arg constructor.");
-            }
-        } catch (NoSuchMethodException _) {
-            throw new NoSuchMethodException("Failed to get the constructor of resource class: " + resourceClass.getName() + ".\nEnsure it has a public no-arg constructor.");
-        }
-
-        List<Method> matchingMethods = Arrays.stream(resourceClass.getMethods())
-            .filter(m -> (
-                java.lang.reflect.Modifier.isPublic(m.getModifiers()) &&
-                !java.lang.reflect.Modifier.isStatic(m.getModifiers()) &&
-                m.getName().equals(methodName) &&
-                m.getParameterCount() == paramCount
-            )).toList();
-        
-        if (matchingMethods.isEmpty()) {
-            throw new NoSuchMethodException(
-                "No method named '" + methodName + "' with " + paramCount + " parameter(s) in class " + resourceClass.getName() +
-                ".\n Ensure the method is public, non-static, and has the correct number of parameters."
-            );
-        }
-        
-        if (matchingMethods.size() > 1) {
-            // Build detailed ambiguity message
-            StringBuilder details = new StringBuilder();
-            for (Method m : matchingMethods) {
-                if (!details.isEmpty()) details.append(", ");
-                details.append(m.getName())
-                       .append("(")
-                       .append(formatParameterTypes(m.getParameterTypes()))
-                       .append(")");
-            }
-            
-            throw new NoSuchMethodException(
-                "Ambiguous methods: multiple methods named '" + methodName + 
-                "' with " + paramCount + " parameter(s) in class " + resourceClass.getName() + 
-                ": " + details.toString()
-            );
-        }
-        
-        return matchingMethods.get(0);
-    }
-
-    /**
-     * Formats parameter types for readable error messages (simple names only).
-     */
-    private String formatParameterTypes(Class<?>[] paramTypes) {
-        return String.join(",", Arrays.stream(paramTypes)
-            .map(Class::getSimpleName)
-            .toArray(String[]::new));
-    }
-    
-    /**
-     * Optional: Clear entire cache.
+     * Clear entire cache.
      */
     public static void clearCache() {
         methodCache.clear();
     }
     
     /**
-     * Optional: Clear cache for a specific resource class.
+     * Clear cache for a specific resource class.
      */
     public static void clearCacheForClass(Class<?> resourceClass) {
         String prefix = resourceClass.getName() + "#";
@@ -178,7 +110,7 @@ public class MethodHandler {
     }
     
     /**
-     * Optional: Get cache size for monitoring.
+     * Get cache size for monitoring.
      */
     public static int getCacheSize() {
         return methodCache.size();

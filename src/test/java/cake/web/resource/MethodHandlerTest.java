@@ -18,19 +18,20 @@ class MethodHandlerTest {
         public void get(Integer id) { /* Only test */ }
         public void post(String name) { /* Only test */ }
         public void put(Integer id, String value) { /* Only test */ }
+        public void delete(Integer id) { /* Only test */ }
     }
 
     public static class OverloadedResource {
-        public void delete(String query) { /* Only test */ }
+        public void delete(Long query) { /* Only test */ }
         public void delete(Integer id) { /* Only test */ }
         public void delete(Long id, Integer page) { /* Only test */ }
-        public void delete(String query, Integer page) { /* Only test */ }
+        public void delete(Short query, Integer page) { /* Only test */ }
         public void post(Integer id) { /* Only test */ }
     }
 
     public static class AmbiguousResource {
         public void post(Integer id) { /* Only test */ }
-        public void post(String name) { /* Only test */ }
+        public void post(Long longId) { /* Only test */ }
     }
 
     public static class MixedCaseResource {
@@ -181,7 +182,7 @@ class MethodHandlerTest {
         assertTrue(exception.getMessage().contains("Ambiguous"));
         assertTrue(exception.getMessage().contains("post"));
         assertTrue(exception.getMessage().contains("Integer"));
-        assertTrue(exception.getMessage().contains("String"));
+        assertTrue(exception.getMessage().contains("Long"));
     }
 
     @Test
@@ -215,7 +216,7 @@ class MethodHandlerTest {
         );
         
         assertTrue(exception.getMessage().contains("No method named 'delete'"));
-        assertTrue(exception.getMessage().contains("with 0 parameter(s)"));
+        assertTrue(exception.getMessage().contains("with path parameters"));
     }
 
     @Test
@@ -229,7 +230,7 @@ class MethodHandlerTest {
         );
         
         assertTrue(exception.getMessage().contains("No method named 'get'"));
-        assertTrue(exception.getMessage().contains("with 2 parameter(s)"));
+        assertTrue(exception.getMessage().contains("with path parameters"));
     }
 
     @Test
@@ -381,7 +382,8 @@ class MethodHandlerTest {
             handler.findHttpMethod(StaticMethodResource.class, List.of(), HttpMethodName.GET)
         );
         
-        assertTrue(exception.getMessage().contains("non-static"));
+        assertTrue(exception.getMessage().contains("No method named 'get'"));
+        assertTrue(exception.getMessage().contains("with path parameters"));
     }
 
     @Test
