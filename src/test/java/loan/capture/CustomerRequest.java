@@ -1,12 +1,11 @@
 package loan.capture;
 
-import java.math.BigDecimal;
 import java.util.Objects;
 
 public class CustomerRequest {
     private String name;
-    private BigDecimal salary;
-    private Long addressId;
+    private Double salary;
+    private Integer addressId;
 
     public String getName() {
         return name;
@@ -17,20 +16,20 @@ public class CustomerRequest {
         return this;
     }
 
-    public BigDecimal getSalary() {
+    public Double getSalary() {
         return salary;
     }
 
-    public CustomerRequest setSalary(BigDecimal salary) {
+    public CustomerRequest setSalary(Double salary) {
         this.salary = salary;
         return this;
     }
 
-    public Long getAddressId() {
+    public Integer getAddressId() {
         return addressId;
     }
 
-    public CustomerRequest setAddressId(Long addressId) {
+    public CustomerRequest setAddressId(Integer addressId) {
         this.addressId = addressId;
         return this;
     }

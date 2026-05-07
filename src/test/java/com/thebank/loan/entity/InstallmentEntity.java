@@ -1,6 +1,5 @@
 package com.thebank.loan.entity;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -9,7 +8,7 @@ public class InstallmentEntity {
     private Integer loanRequestId;
     private Integer installmentNumber;
     private LocalDate dueDate;
-    private BigDecimal amount;
+    private Double amount;
     private LocalDate paidDate;
     private Boolean isLate;
 
@@ -49,11 +48,11 @@ public class InstallmentEntity {
         return this;
     }
 
-    public BigDecimal getAmount() {
+    public Double getAmount() {
         return amount;
     }
 
-    public InstallmentEntity setAmount(BigDecimal amount) {
+    public InstallmentEntity setAmount(Double amount) {
         this.amount = amount;
         return this;
     }

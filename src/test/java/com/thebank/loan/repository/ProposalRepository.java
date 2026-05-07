@@ -9,6 +9,8 @@ public interface ProposalRepository {
 
     ProposalEntity save(ProposalEntity entity);
 
+    List<ProposalEntity> saveAll(List<ProposalEntity> asList);
+
     Optional<ProposalEntity> findById(Integer id);
 
     List<ProposalEntity> findAll();
@@ -16,5 +18,4 @@ public interface ProposalRepository {
     void deleteById(Integer id);
 
     boolean existsById(Integer id);
-
 }

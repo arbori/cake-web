@@ -146,7 +146,7 @@ abstract class AbstractRequestExchange {
                 else {
                     // find get method on parent resource to obtain child parentResource attribute.
                     MethodResolution parentResourceGetMethod = findHttpMethod(resource.getClass(), pathParams,
-                            HttpMethodName.GET);
+                        HttpMethodName.GET);
 
                     // call parent's get method to obtain child parentResource attribute.
                     Object parentResourceResult = parentResourceGetMethod.call(resource);

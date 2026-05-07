@@ -7,37 +7,37 @@ import java.util.List;
 import java.util.Objects;
 
 public class ProposalResponse {
-    private Long id;
-    private Long customerId;
-    private BigDecimal amount;
+    private Integer id;
+    private Integer customerId;
+    private Double amount;
     private Integer numberOfInstallments;
-    private BigDecimal monthlyInterestRate; // ex: 0.02 para 2% ao mês
+    private Double monthlyInterestRate; // ex: 0.02 para 2% ao mês
     private LocalDate requestDate;
     private List<InstallmentResponse> installments = new ArrayList<>();
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
-    public ProposalResponse setId(Long id) {
+    public ProposalResponse setId(Integer id) {
         this.id = id;
         return this;
     }
 
-    public Long getCustomerId() {
+    public Integer getCustomerId() {
         return customerId;
     }
 
-    public ProposalResponse setCustomerId(Long customerId) {
+    public ProposalResponse setCustomerId(Integer customerId) {
         this.customerId = customerId;
         return this;
     }
 
-    public BigDecimal getAmount() {
+    public Double getAmount() {
         return amount;
     }
 
-    public ProposalResponse setAmount(BigDecimal amount) {
+    public ProposalResponse setAmount(Double amount) {
         this.amount = amount;
         return this;
     }
@@ -51,11 +51,11 @@ public class ProposalResponse {
         return this;
     }
 
-    public BigDecimal getMonthlyInterestRate() {
+    public Double getMonthlyInterestRate() {
         return monthlyInterestRate;
     }
 
-    public ProposalResponse setMonthlyInterestRate(BigDecimal monthlyInterestRate) {
+    public ProposalResponse setMonthlyInterestRate(Double monthlyInterestRate) {
         this.monthlyInterestRate = monthlyInterestRate;
         return this;
     }

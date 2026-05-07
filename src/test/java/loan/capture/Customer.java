@@ -2,11 +2,6 @@ package loan.capture;
 
 import java.util.Optional;
 
-import com.thebank.loan.entity.CustomerEntity;
-import com.thebank.loan.repository.memory.InMemoryAddressRepository;
-import com.thebank.loan.repository.memory.InMemoryCustomerRepository;
-import com.thebank.loan.repository.memory.InMemoryInstallmentRepository;
-import com.thebank.loan.repository.memory.InMemoryProposalRepository;
 import com.thebank.loan.service.LoanService;
 
 import cake.web.exception.BadRequestException;
@@ -16,19 +11,14 @@ import cake.web.exception.ParameterNotFoundException;
  * Simulates a resource class with GET and POST endpoints
  */
 public class Customer {
-    private LoanService loanService = new LoanService(
-        InMemoryCustomerRepository.instance(),
-        InMemoryAddressRepository.instance(),
-        InMemoryProposalRepository.instance(),
-        InMemoryInstallmentRepository.instance()
-    );
+    private LoanService loanService = new LoanService();
 
     /**
      * GET endpoint simulation
      */
-    public CustomerEntity get(Integer customerId) throws ParameterNotFoundException {
+    public CustomerResponse get(Integer customerId) throws ParameterNotFoundException {
         if(customerId != null) {
-            Optional<CustomerEntity> customerEntityOpt = loanService.getCustomer(customerId);
+            Optional<CustomerResponse> customerEntityOpt = loanService.getCustomer(customerId);
             
             if (customerEntityOpt.isPresent()) {
                 return customerEntityOpt.get();
@@ -43,17 +33,17 @@ public class Customer {
     /**
      * POST endpoint simulation
      */
-    public CustomerEntity post(CustomerEntity customerEntity) throws BadRequestException {
+    public CustomerResponse post(CustomerRequest customerRequest) throws BadRequestException {
         try {
-            if (customerEntity == null) {
+            if (customerRequest == null) {
                 throw new BadRequestException("No body in request");
             }
 
-            if (customerEntity.getName() == null || customerEntity.getName().isEmpty()) {
+            if (customerRequest.getName() == null || customerRequest.getName().isEmpty()) {
                 throw new BadRequestException("Customer name is required");
             }
 
-            return loanService.createCustomer(customerEntity.getName(), customerEntity.getSalary(), customerEntity.getAddressId());
+            return loanService.createCustomer(customerRequest.getName(), customerRequest.getSalary(), customerRequest.getAddressId());
         } 
         catch(IllegalArgumentException e) {
             throw new BadRequestException("Invalid body object - " + e.getMessage());

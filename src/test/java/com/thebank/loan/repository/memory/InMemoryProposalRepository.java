@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.thebank.loan.entity.ProposalEntity;
+import com.thebank.loan.entity.ProposalStatus;
 import com.thebank.loan.repository.ProposalRepository;
 import com.thebank.loan.repository.Repository;
 
@@ -32,9 +33,17 @@ public class InMemoryProposalRepository implements Repository<ProposalEntity, In
     public ProposalEntity save(ProposalEntity entity) {
         if (entity.getId() == null) {
             entity.setId(idGenerator.getAndIncrement());
+            entity.setStatus(ProposalStatus.PENDING);
         }
+
         store.put(entity.getId(), entity);
         return entity;
+    }
+
+    @Override
+    public List<ProposalEntity> saveAll(List<ProposalEntity> proposalList) {
+        proposalList.forEach(this::save);
+        return proposalList;
     }
 
     @Override
@@ -56,5 +65,6 @@ public class InMemoryProposalRepository implements Repository<ProposalEntity, In
     public boolean existsById(Integer id) {
         return store.containsKey(id);
     }
+
 }
 

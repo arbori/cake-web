@@ -1,7 +1,5 @@
 package com.thebank.loan.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -16,47 +14,64 @@ import com.thebank.loan.repository.AddressRepository;
 import com.thebank.loan.repository.CustomerRepository;
 import com.thebank.loan.repository.InstallmentRepository;
 import com.thebank.loan.repository.ProposalRepository;
+import com.thebank.loan.repository.memory.InMemoryAddressRepository;
+import com.thebank.loan.repository.memory.InMemoryCustomerRepository;
+import com.thebank.loan.repository.memory.InMemoryInstallmentRepository;
+import com.thebank.loan.repository.memory.InMemoryProposalRepository;
+
+import loan.capture.AddressResponse;
+import loan.capture.CustomerResponse;
+import loan.capture.ProposalResponse;
 
 public class LoanService {
-    private final CustomerRepository customerRepository;
-    private final AddressRepository addressRepository;
-    private final ProposalRepository loanRequestRepository;
-    private final InstallmentRepository installmentRepository;
-    private final RiskAnalysisService riskAnalysisService;
+    private final CustomerRepository customerRepository = InMemoryCustomerRepository.instance();
+    private final AddressRepository addressRepository = InMemoryAddressRepository.instance();
+    private final ProposalRepository loanRequestRepository = InMemoryProposalRepository.instance();
+    private final InstallmentRepository installmentRepository = InMemoryInstallmentRepository.instance();
 
-    public LoanService(CustomerRepository customerRepository,
-                       AddressRepository addressRepository,
-                       ProposalRepository loanRequestRepository,
-                       InstallmentRepository installmentRepository) {
-        this.customerRepository = customerRepository;
-        this.addressRepository = addressRepository;
-        this.loanRequestRepository = loanRequestRepository;
-        this.installmentRepository = installmentRepository;
-        this.riskAnalysisService = new RiskAnalysisService(addressRepository, installmentRepository);
-    }
+    private final RiskAnalysisService riskAnalysisService = new RiskAnalysisService();
 
     // CRUD Customer
-    public CustomerEntity createCustomer(String name, BigDecimal salary, Integer addressId) {
+    public CustomerResponse createCustomer(String name, Double salary, Integer addressId) {
         if (!addressRepository.existsById(addressId)) {
             throw new IllegalArgumentException("Address not found");
         }
-        CustomerEntity customer = new CustomerEntity()
+            
+        CustomerEntity savedCustomer = customerRepository.save(new CustomerEntity()
             .setName(name)
             .setSalary(salary)
-            .setAddressId(addressId);
-            
-        return customerRepository.save(customer);
+            .setAddressId(addressId));
+
+        return new CustomerResponse()
+                .setId(savedCustomer.getId())
+                .setName(savedCustomer.getName())
+                .setSalary(savedCustomer.getSalary())
+                .setAddressId(savedCustomer.getAddressId());
     }
 
-    public Optional<CustomerEntity> getCustomer(Integer id) {
-        return customerRepository.findById(id);
+    public Optional<CustomerResponse> getCustomer(Integer id) {
+        CustomerResponse response = new CustomerResponse();
+
+        customerRepository.findById(id).ifPresent(customer -> 
+            response.setId(customer.getId())
+                .setName(customer.getName())
+                .setSalary(customer.getSalary())
+                .setAddressId(customer.getAddressId()));
+
+        return Optional.of(response);
     }
 
-    public List<CustomerEntity> getAllCustomers() {
-        return customerRepository.findAll();
+    public List<CustomerResponse> getAllCustomers() {
+        return customerRepository.findAll().stream()
+                .map(customer -> new CustomerResponse()
+                        .setId(customer.getId())
+                        .setName(customer.getName())
+                        .setSalary(customer.getSalary())
+                        .setAddressId(customer.getAddressId()))
+                .toList();
     }
 
-    public CustomerEntity updateCustomer(Integer id, String name, BigDecimal salary, Integer addressId) {
+    public CustomerResponse updateCustomer(Integer id, String name, Double salary, Integer addressId) {
         CustomerEntity customer = customerRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
         
@@ -68,40 +83,85 @@ public class LoanService {
             customer.setAddressId(addressId);
         }
         
-        return customerRepository.save(customer);
+        customer = customerRepository.save(customer);
+
+        return new CustomerResponse()
+                .setId(customer.getId())
+                .setName(customer.getName())
+                .setSalary(customer.getSalary())
+                .setAddressId(customer.getAddressId());
     }
 
-    public void deleteCustomer(Integer id) {
+    public CustomerResponse deleteCustomer(Integer id) {
+        CustomerResponse response =new CustomerResponse();
+
+        customerRepository.findById(id).ifPresent(customer -> 
+            response
+                .setId(customer.getId())
+                .setName(customer.getName())
+                .setSalary(customer.getSalary())
+                .setAddressId(customer.getAddressId())
+        );
+
         customerRepository.deleteById(id);
+
+        return response;
     }
 
     // CRUD Address
-    public AddressEntity createAddress(String zipcode, String street, String city, String state) {
+    public AddressResponse createAddress(String zipcode, String street, String city, String state) {
         AddressEntity address = new AddressEntity()
             .setZipcode(zipcode)
             .setStreet(street)
             .setCity(city)
             .setState(state);
 
-        return addressRepository.save(address);
+        address = addressRepository.save(address);
+
+        return new AddressResponse()
+                .setId(address.getId())
+                .setZipcode(address.getZipcode())
+                .setStreet(address.getStreet())
+                .setCity(address.getCity())
+                .setState(address.getState());
     }
 
-    public Optional<AddressEntity> getAddress(Integer id) {
-        return addressRepository.findById(id);
+    public Optional<AddressResponse> getAddress(Integer id) {
+        return addressRepository.findById(id).map(address -> new AddressResponse()
+                .setId(address.getId())
+                .setZipcode(address.getZipcode())
+                .setStreet(address.getStreet())
+                .setCity(address.getCity())
+                .setState(address.getState()));
     }
 
-    public List<AddressEntity> getAllAddresses() {
-        return addressRepository.findAll();
+    public List<AddressResponse> getAllAddresses() {
+        return addressRepository.findAll().stream()
+                .map(address -> new AddressResponse()
+                        .setId(address.getId())
+                        .setZipcode(address.getZipcode())
+                        .setStreet(address.getStreet())
+                        .setCity(address.getCity())
+                        .setState(address.getState()))
+                .toList();
     }
 
-    public AddressEntity updateAddress(Integer id, String zipcode, String street, String city, String state) {
+    public AddressResponse updateAddress(Integer id, String zipcode, String street, String city, String state) {
         AddressEntity address = addressRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Address not found"));
         if (zipcode != null) address.setZipcode(zipcode);
         if (street != null) address.setStreet(street);
         if (city != null) address.setCity(city);
         if (state != null) address.setState(state);
-        return addressRepository.save(address);
+
+        address = addressRepository.save(address);
+        
+        return new AddressResponse()
+                .setId(address.getId())
+                .setZipcode(address.getZipcode())
+                .setStreet(address.getStreet())
+                .setCity(address.getCity())
+                .setState(address.getState());
     }
 
     public void deleteAddress(Integer id) {
@@ -109,8 +169,8 @@ public class LoanService {
     }
 
     // Requisição de empréstimo com análise de risco
-    public ProposalEntity requestLoan(Integer customerId, BigDecimal amount, int installments,
-                                   BigDecimal monthlyRate, LocalDate requestDate) {
+    public ProposalResponse requestLoan(Integer customerId, Double amount, int installments,
+                                   Double monthlyRate, LocalDate requestDate) {
         CustomerEntity customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
 
@@ -126,7 +186,7 @@ public class LoanService {
         loan.setRiskAssessment(risk);
 
         // Gera as parcelas
-        BigDecimal monthlyPayment = calculateMonthlyInstallment(amount, monthlyRate, installments);
+        Double monthlyPayment = calculateMonthlyInstallment(amount, monthlyRate, installments);
 
         for (int i = 1; i <= installments; i++) {
             LocalDate dueDate = requestDate.plusMonths(i);
@@ -149,16 +209,21 @@ public class LoanService {
         customer.getLoanRequests().add(savedLoan);
         customerRepository.save(customer);
         
-        return savedLoan;
+        return new ProposalResponse()
+                .setId(savedLoan.getId())
+                .setCustomerId(savedLoan.getCustomerId())
+                .setAmount(savedLoan.getAmount())
+                .setNumberOfInstallments(savedLoan.getNumberOfInstallments())
+                .setMonthlyInterestRate(savedLoan.getMonthlyInterestRate())
+                .setRequestDate(savedLoan.getRequestDate());
     }
 
-    private BigDecimal calculateMonthlyInstallment(BigDecimal amount, BigDecimal rate, int n) {
-        if (rate.compareTo(BigDecimal.ZERO) == 0) {
-            return amount.divide(BigDecimal.valueOf(n), 2, RoundingMode.HALF_UP);
+    private Double calculateMonthlyInstallment(Double amount, Double rate, int n) {
+        if (rate == 0.0) {
+            return amount / (double) n;
         }
-        BigDecimal factor = rate.multiply(BigDecimal.ONE.add(rate).pow(n))
-                .divide(BigDecimal.ONE.add(rate).pow(n).subtract(BigDecimal.ONE), 10, RoundingMode.HALF_UP);
-        return amount.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+        double factor = rate * Math.pow(1 + rate, n) / (Math.pow(1 + rate, n) - 1);
+        return amount * factor;
     }
 
     // Pagamento de prestação
@@ -176,12 +241,12 @@ public class LoanService {
     }
 
     // Liquidação antecipada – calcula o valor presente das parcelas restantes
-    public BigDecimal earlySettlementValue(Integer loanRequestId, LocalDate settlementDate) {
+    public double earlySettlementValue(Integer loanRequestId, LocalDate settlementDate) {
         ProposalEntity loan = loanRequestRepository.findById(loanRequestId)
                 .orElseThrow(() -> new IllegalArgumentException("Loan not found"));
         List<InstallmentEntity> installments = installmentRepository.findByLoanRequestId(loanRequestId);
-        BigDecimal presentValue = BigDecimal.ZERO;
-        BigDecimal monthlyRate = loan.getMonthlyInterestRate();
+        double presentValue = 0.0;
+        Double monthlyRate = loan.getMonthlyInterestRate();
 
         for (InstallmentEntity inst : installments) {
             if (inst.getPaidDate() != null) continue; // já paga
@@ -189,10 +254,20 @@ public class LoanService {
             long monthsDiff = ChronoUnit.MONTHS.between(settlementDate.withDayOfMonth(1),
                     inst.getDueDate().withDayOfMonth(1));
             if (monthsDiff < 0) monthsDiff = 0;
-            BigDecimal discountFactor = BigDecimal.ONE.add(monthlyRate).pow((int) monthsDiff);
-            BigDecimal pv = inst.getAmount().divide(discountFactor, 2, RoundingMode.HALF_UP);
-            presentValue = presentValue.add(pv);
+            double discountFactor = Math.pow(1 + monthlyRate, (int) monthsDiff);
+            double pv = inst.getAmount() / discountFactor;
+            presentValue = presentValue + pv;
         }
         return presentValue;
+    }
+
+    public Optional<ProposalResponse> getProposal(Integer proposalId) {
+        return loanRequestRepository.findById(proposalId).map(loan -> new ProposalResponse()
+                .setId(loan.getId())
+                .setCustomerId(loan.getCustomerId())
+                .setAmount(loan.getAmount())
+                .setNumberOfInstallments(loan.getNumberOfInstallments())
+                .setMonthlyInterestRate(loan.getMonthlyInterestRate())
+                .setRequestDate(loan.getRequestDate()));
     }
 }

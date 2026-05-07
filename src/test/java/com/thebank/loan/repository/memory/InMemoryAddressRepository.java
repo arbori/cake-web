@@ -38,6 +38,12 @@ public class InMemoryAddressRepository implements Repository<AddressEntity, Inte
     }
 
     @Override
+    public List<AddressEntity> saveAll(List<AddressEntity> entities) {
+        entities.forEach(this::save);
+        return new ArrayList<>(entities);
+    }
+
+    @Override
     public Optional<AddressEntity> findById(Integer id) {
         return Optional.ofNullable(store.get(id));
     }

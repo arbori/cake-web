@@ -9,6 +9,8 @@ public interface AddressRepository {
 
     AddressEntity save(AddressEntity entity);
 
+    List<AddressEntity> saveAll(List<AddressEntity> entities);
+
     Optional<AddressEntity> findById(Integer id);
 
     List<AddressEntity> findAll();

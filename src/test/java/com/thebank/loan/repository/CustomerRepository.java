@@ -9,6 +9,8 @@ public interface CustomerRepository {
 
     CustomerEntity save(CustomerEntity entity);
 
+    List<CustomerEntity> saveAll(List<CustomerEntity> entities);
+
     Optional<CustomerEntity> findById(Integer id);
 
     List<CustomerEntity> findAll();

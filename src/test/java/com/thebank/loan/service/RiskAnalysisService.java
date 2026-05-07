@@ -1,7 +1,5 @@
 package com.thebank.loan.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,47 +11,42 @@ import com.thebank.loan.entity.ProposalEntity;
 import com.thebank.loan.entity.RiskAssessmentEntity;
 import com.thebank.loan.repository.AddressRepository;
 import com.thebank.loan.repository.InstallmentRepository;
+import com.thebank.loan.repository.memory.InMemoryAddressRepository;
+import com.thebank.loan.repository.memory.InMemoryInstallmentRepository;
 
 public class RiskAnalysisService {
     // Mapeamento de faixas de CEP para fator de risco (exemplo)
-    private static final Map<String, BigDecimal> ZIPCODE_RISK_FACTORS = new HashMap<>();
+    private static final Map<String, Double> ZIPCODE_RISK_FACTORS = new HashMap<>();
     
     static {
-        ZIPCODE_RISK_FACTORS.put("01000", new BigDecimal("0.8"));  // baixo risco
-        ZIPCODE_RISK_FACTORS.put("02000", new BigDecimal("1.0"));  // médio
-        ZIPCODE_RISK_FACTORS.put("03000", new BigDecimal("1.2"));  // alto
+        ZIPCODE_RISK_FACTORS.put("01000", 0.8);  // baixo risco
+        ZIPCODE_RISK_FACTORS.put("02000", 1.0);  // médio
+        ZIPCODE_RISK_FACTORS.put("03000", 1.2);  // alto
         // fator padrão
     }
 
-    private final AddressRepository addressRepository;
-    private final InstallmentRepository installmentRepository;
-
-    public RiskAnalysisService(AddressRepository addressRepository,
-                               InstallmentRepository installmentRepository) {
-        this.addressRepository = addressRepository;
-        this.installmentRepository = installmentRepository;
-    }
+    private final AddressRepository addressRepository = InMemoryAddressRepository.instance();
+    private final InstallmentRepository installmentRepository = InMemoryInstallmentRepository.instance();
 
     public RiskAssessmentEntity assessRisk(CustomerEntity customer, ProposalEntity newLoan) {
         // 1. Probabilidade de pagamento baseada no histórico
-        BigDecimal probability = calculatePaymentProbability(customer);
+        double probability = calculatePaymentProbability(customer);
 
         // 2. Percentual de endividamento (novo compromisso + existentes)
-        BigDecimal debtRatio = calculateDebtToIncomeRatio(customer, newLoan);
+        double debtRatio = calculateDebtToIncomeRatio(customer, newLoan);
 
         // 3. Fator de risco do CEP
-        BigDecimal zipcodeFactor = getZipcodeRiskFactor(customer.getAddressId());
+        double zipcodeFactor = getZipcodeRiskFactor(customer.getAddressId());
 
         // 4. Cálculo do score final: quanto maior a probabilidade, menor o risco.
         //    Invertemos e aplicamos os fatores.
         //    Exemplo: riscoBase = (1 - probabilidade) * (1 + debtRatio) * zipcodeFactor
-        BigDecimal riskBase = BigDecimal.ONE.subtract(probability)
-                .multiply(BigDecimal.ONE.add(debtRatio))
-                .multiply(zipcodeFactor);
+        double riskBase = 1 - probability;
+        riskBase = riskBase * (1 + debtRatio) * zipcodeFactor;
         // Normaliza para escala 0-100
-        BigDecimal finalScore = riskBase.multiply(new BigDecimal("100"))
-                .min(BigDecimal.valueOf(100))
-                .max(BigDecimal.ZERO);
+        double finalScore = riskBase * 100;
+        finalScore = Math.min(finalScore, 100);
+        finalScore = Math.max(finalScore, 0);
 
         return new RiskAssessmentEntity()
             .setProbabilityOfPayment(probability)
@@ -62,53 +55,52 @@ public class RiskAnalysisService {
             .setFinalRiskScore(finalScore);
     }
 
-    private BigDecimal calculatePaymentProbability(CustomerEntity customer) {
+    private double calculatePaymentProbability(CustomerEntity customer) {
         List<ProposalEntity> loans = customer.getLoanRequests();
         if (loans.isEmpty()) {
-            return BigDecimal.ONE; // sem histórico = risco máximo? Aqui consideramos neutro
+            return 1.0; // sem histórico = risco máximo? Aqui consideramos neutro
         }
         List<InstallmentEntity> allInstallments = installmentRepository.findByCustomerId(customer.getId(), loans);
         if (allInstallments.isEmpty()) {
-            return BigDecimal.ONE;
+            return 1.0;
         }
         long total = allInstallments.size();
         long problematic = allInstallments.stream()
                 .filter(i -> i.getPaidDate() == null || Boolean.TRUE.equals(i.getIsLate()))
                 .count();
-        if (total == 0) return BigDecimal.ONE;
-        return BigDecimal.valueOf(total - problematic).divide(BigDecimal.valueOf(total), 4, RoundingMode.HALF_UP);
+        if (total == 0) return 1.0;
+        return (total - problematic) / total;
     }
 
-    private BigDecimal calculateDebtToIncomeRatio(CustomerEntity customer, ProposalEntity newLoan) {
-        BigDecimal monthlyInstallmentNewLoan = calculateMonthlyInstallment(newLoan);
-        BigDecimal existingMonthlyCommitment = customer.getLoanRequests().stream()
+    private double calculateDebtToIncomeRatio(CustomerEntity customer, ProposalEntity newLoan) {
+        double monthlyInstallmentNewLoan = calculateMonthlyInstallment(newLoan);
+        double existingMonthlyCommitment = customer.getLoanRequests().stream()
                 .map(this::calculateMonthlyInstallment)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalMonthly = existingMonthlyCommitment.add(monthlyInstallmentNewLoan);
-        if (customer.getSalary().compareTo(BigDecimal.ZERO) == 0) return BigDecimal.valueOf(100);
-        return totalMonthly.divide(customer.getSalary(), 4, RoundingMode.HALF_UP);
+                .reduce(0.0, Double::sum);
+        double totalMonthly = existingMonthlyCommitment + monthlyInstallmentNewLoan;
+        if (customer.getSalary() == 0) return 100.0;
+        return totalMonthly / customer.getSalary();
     }
 
-    private BigDecimal calculateMonthlyInstallment(ProposalEntity loan) {
+    private double calculateMonthlyInstallment(ProposalEntity loan) {
         // fórmula de prestação fixa (Price)
-        BigDecimal rate = loan.getMonthlyInterestRate();
-        BigDecimal principal = loan.getAmount();
+        double rate = loan.getMonthlyInterestRate();
+        double principal = loan.getAmount();
         int n = loan.getNumberOfInstallments();
-        if (rate.compareTo(BigDecimal.ZERO) == 0) {
-            return principal.divide(BigDecimal.valueOf(n), 2, RoundingMode.HALF_UP);
+        if (rate == 0) {
+            return principal / n;
         }
-        BigDecimal factor = rate.multiply(BigDecimal.ONE.add(rate).pow(n))
-                .divide(BigDecimal.ONE.add(rate).pow(n).subtract(BigDecimal.ONE), 10, RoundingMode.HALF_UP);
-        return principal.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+        double factor = rate * Math.pow(1 + rate, n) / (Math.pow(1 + rate, n) - 1);
+        return principal * factor;
     }
 
-    private BigDecimal getZipcodeRiskFactor(Integer addressId) {
+    private double getZipcodeRiskFactor(Integer addressId) {
         return addressRepository.findById(addressId)
                 .map(AddressEntity::getZipcode)
                 .map(zip -> {
                     String prefix = zip.length() >= 5 ? zip.substring(0, 5) : zip;
-                    return ZIPCODE_RISK_FACTORS.getOrDefault(prefix, new BigDecimal("1.0"));
+                    return ZIPCODE_RISK_FACTORS.getOrDefault(prefix, 1.0);
                 })
-                .orElse(new BigDecimal("1.0"));
+                .orElse(1.0);
     }
 }

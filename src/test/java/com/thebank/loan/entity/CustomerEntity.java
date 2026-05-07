@@ -1,6 +1,5 @@
 package com.thebank.loan.entity;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -8,7 +7,7 @@ import java.util.Objects;
 public class CustomerEntity {
     private Integer id;
     private String name;
-    private BigDecimal salary;
+    private Double salary;
     private Integer addressId;
     private List<ProposalEntity> loanRequests = new ArrayList<>();
 
@@ -30,11 +29,11 @@ public class CustomerEntity {
         return this;
     }
 
-    public BigDecimal getSalary() {
+    public Double getSalary() {
         return salary;
     }
 
-    public CustomerEntity setSalary(BigDecimal salary) {
+    public CustomerEntity setSalary(Double salary) {
         this.salary = salary;
         return this;
     }

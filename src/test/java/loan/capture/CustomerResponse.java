@@ -1,22 +1,21 @@
 package loan.capture;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class CustomerResponse {
-    private Long id;
+    private Integer id;
     private String name;
-    private BigDecimal salary;
-    private Long addressId;
+    private Double salary;
+    private Integer addressId;
     private List<ProposalResponse> loanRequests = new ArrayList<>();
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
-    public CustomerResponse setId(Long id) {
+    public CustomerResponse setId(Integer id) {
         this.id = id;
         return this;
     }
@@ -30,20 +29,20 @@ public class CustomerResponse {
         return this;
     }
 
-    public BigDecimal getSalary() {
+    public Double getSalary() {
         return salary;
     }
 
-    public CustomerResponse setSalary(BigDecimal salary) {
+    public CustomerResponse setSalary(Double salary) {
         this.salary = salary;
         return this;
     }
 
-    public Long getAddressId() {
+    public Integer getAddressId() {
         return addressId;
     }
 
-    public CustomerResponse setAddressId(Long addressId) {
+    public CustomerResponse setAddressId(Integer addressId) {
         this.addressId = addressId;
         return this;
     }
@@ -65,11 +64,42 @@ public class CustomerResponse {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, salary, addressId, loanRequests);
+        int hash = 7;
+        hash = 31 * hash + Objects.hashCode(this.id);
+        hash = 31 * hash + Objects.hashCode(this.name);
+        hash = 31 * hash + Objects.hashCode(this.salary);
+        hash = 31 * hash + Objects.hashCode(this.addressId);
+        hash = 31 * hash + Objects.hashCode(this.loanRequests);
+        return hash;
     }
 
     @Override
     public boolean equals(Object obj) {
-        return Objects.equals(this, obj);
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final CustomerResponse other = (CustomerResponse) obj;
+        if (!Objects.equals(this.name, other.name)) {
+            return false;
+        }
+        if (!Objects.equals(this.id, other.id)) {
+            return false;
+        }
+        if (!Objects.equals(this.salary, other.salary)) {
+            return false;
+        }
+        if (!Objects.equals(this.addressId, other.addressId)) {
+            return false;
+        }
+        if (!Objects.equals(this.loanRequests, other.loanRequests)) {
+            return false;
+        }
+        return true;
     }
 }

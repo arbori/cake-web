@@ -9,12 +9,13 @@ import java.util.Objects;
 public class ProposalEntity {
     private Integer id;
     private Integer customerId;
-    private BigDecimal amount;
+    private Double amount;
     private Integer numberOfInstallments;
-    private BigDecimal monthlyInterestRate; // ex: 0.02 para 2% ao mês
+    private Double monthlyInterestRate; // ex: 0.02 para 2% ao mês
     private LocalDate requestDate;
     private RiskAssessmentEntity riskAssessment;
     private List<InstallmentEntity> installments = new ArrayList<>();
+    private ProposalStatus status;
 
     public Integer getId() {
         return id;
@@ -34,11 +35,11 @@ public class ProposalEntity {
         return this;
     }
 
-    public BigDecimal getAmount() {
+    public Double getAmount() {
         return amount;
     }
 
-    public ProposalEntity setAmount(BigDecimal amount) {
+    public ProposalEntity setAmount(Double amount) {
         this.amount = amount;
         return this;
     }
@@ -52,11 +53,11 @@ public class ProposalEntity {
         return this;
     }
 
-    public BigDecimal getMonthlyInterestRate() {
+    public Double getMonthlyInterestRate() {
         return monthlyInterestRate;
     }
 
-    public ProposalEntity setMonthlyInterestRate(BigDecimal monthlyInterestRate) {
+    public ProposalEntity setMonthlyInterestRate(Double monthlyInterestRate) {
         this.monthlyInterestRate = monthlyInterestRate;
         return this;
     }
@@ -85,6 +86,15 @@ public class ProposalEntity {
 
     public ProposalEntity setInstallments(List<InstallmentEntity> installments) {
         this.installments = installments;
+        return this;
+    }
+
+    public ProposalStatus getStatus() {
+        return status;
+    }
+
+    public ProposalEntity setStatus(ProposalStatus status) {
+        this.status = status;
         return this;
     }
 
