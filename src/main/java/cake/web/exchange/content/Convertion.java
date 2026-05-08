@@ -3,6 +3,7 @@ package cake.web.exchange.content;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,17 +26,30 @@ public class Convertion {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     /**
-     * Converts a string value to the specified target type. It supports basic types
-     * like integers, floating points, booleans, enums, date/time types, and any type 
-     * that implements BodyContent (by parsing JSON).
-     * @param value the string value to convert
+     * Converts the given object to the specified target type. The conversion logic is based on the format of the input value and the target type.
+     * Supported conversions include:
+     * - Numeric types (byte, short, int, long, float, double, BigInteger, BigDecimal)
+     * - Date/time types (LocalTime, LocalDate, LocalDateTime, OffsetDateTime, OffsetTime, ZonedDateTime)
+     * - Boolean type
+     * - UUID type
+     * - JSON deserialization for types implementing BodyContent
+     * - String and Object types (returns the string value)
+     *
+     * @param object the input object to convert (typically a string representation of a path parameter)
      * @param targetType the class of the target type to convert to
      * @return the converted object of the target type
+     * @throws IllegalArgumentException if the conversion cannot be performed due to unsupported types or invalid formats
      */
-    public static Object convert(String value, Class<?> targetType) {
-        if (value == null) {
+    public static Object convert(Object object, Class<?> targetType) {
+        if (object == null) {
             return null;
         }
+
+        if(targetType.isInstance(object)) {
+            return object;
+        }
+
+        String value = object.toString();
 
         // Check if the value looks like any integer value (byte, short, int, long)
         if (value.matches(INTEGER_REGEX) || value.matches(FLOATING_POINT_REGEX)) {
@@ -163,21 +177,17 @@ public class Convertion {
         }
     }
 
-    /**
-     * Converts a list of string path parameters to their corresponding types based on the provided parameter types.
-     * @param pathParams the list of path parameter values as strings
-     * @param parameterTypes the array of target parameter types corresponding to each path parameter
-     * @return a list of converted objects matching the target parameter types
+    /** 
+     * Converts a list of path parameter values to the specified target types based on their positions.
+     * @param pathParams the list of path parameter values (as objects)
+     * @param parameterTypes the array of target parameter types corresponding to each path parameter or the parent resource result.
+     * @return a list of converted objects corresponding to each path parameter and/or the parent resource result.
+     * @throws IllegalArgumentException if any poblem occurs during conversion of any parameter (e.g., unsupported type, invalid format, etc.)
      */
-    public static List<Object> convertPathParams(List<String> pathParams, Class<?>[] parameterTypes) {
-        List<Object> convertedArgs = new java.util.ArrayList<>();
-
-        for (int i = 0; i < pathParams.size(); i++) {
-            String paramValue = i < pathParams.size() ? pathParams.get(i) : null;
-            convertedArgs.add(Convertion.convert(paramValue, parameterTypes[i]));
-        }
-
-        return convertedArgs;
+    public static List<Object> convertPathParams(List<Object> pathParams, Class<?>[] parameterTypes) {
+        return IntStream.range(0, parameterTypes.length)
+                .mapToObj(i -> Convertion.convert(pathParams.get(i), parameterTypes[i]))
+                .toList();
     }
 
     /**
@@ -185,7 +195,13 @@ public class Convertion {
      * @param value the parameter value as a string
      * @return the type description of the parameter
      */
-    public static String kindOfParamType(String value) {
+    public static String kindOfParamType(Object object) {
+        if(!(object instanceof String)) {
+            return object.getClass().getName();
+        }
+
+        String value = (String) object;
+
         if (value.matches(INTEGER_REGEX)) {
             return "integer";
         }

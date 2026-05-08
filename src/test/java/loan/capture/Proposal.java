@@ -2,7 +2,6 @@ package loan.capture;
 
 import java.util.Optional;
 
-import com.thebank.loan.entity.CustomerEntity;
 import com.thebank.loan.service.LoanService;
 
 import cake.web.exception.ParameterNotFoundException;
@@ -13,9 +12,9 @@ public class Proposal {
     /**
      * GET endpoint simulation
      */
-    public ProposalResponse get(Integer proposalId) throws ParameterNotFoundException {
+    public ProposalResponse get(CustomerResponse customerResponse, Integer proposalId) throws ParameterNotFoundException {
         if(proposalId != null) {
-            Optional<ProposalResponse> proposalResponseOptional = loanService.getProposal(proposalId);
+            Optional<ProposalResponse> proposalResponseOptional = loanService.getProposal(customerResponse.getId(), proposalId);
             
             if (proposalResponseOptional.isPresent()) {
                 return proposalResponseOptional.get();
@@ -25,12 +24,5 @@ public class Proposal {
         }    
     
         throw new ParameterNotFoundException("proposalId is required");
-    }
-
-    /**
-     * GET endpoint simulation
-     */
-    public ProposalResponse get(CustomerEntity customerEntity) throws ParameterNotFoundException {
-        throw new UnsupportedOperationException("This endpoint is not implemented yet");
     }
 }

@@ -15,7 +15,6 @@ import org.mockito.MockitoAnnotations;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import loan.capture.AddressResponse;
-import loan.capture.Customer;
 import loan.capture.CustomerResponse;
 import loan.capture.ProposalResponse;
 
@@ -44,6 +43,12 @@ class GetRequestExchangeTest {
 
         addr = loanService.createAddress("171-666", "Rua Alada, 17", "Rio de Janeiro", "Rio de Janeiro");
         loanService.createCustomer("Maria Oliveira", 1500.00, addr.getId());
+
+
+        addr = loanService.createAddress("456-7686", "Avenida Alada, 1007", "Rio Prado", "Goias");
+        loanService.createCustomer("João Maria Oliveira", 2500.00, addr.getId());
+        loanService.createCustomer("Josefina Oliveira", 1500.00, addr.getId());
+        loanService.createCustomer("Mauro Oliveira", 500.00, addr.getId());
     }
 
     @BeforeEach
@@ -104,14 +109,16 @@ class GetRequestExchangeTest {
         assertEquals(customerResponse.getId(), (int) proposal.getCustomerId(), "The customer id is different");
     }
 
-    /*
     @Test
     void getRequestExchangeQueryParameter() throws IOException {
-        Map<String, String[]> parameters = Map.of("name", new String[] { "John Doe" }, "email",
-                new String[] { "john.doe@anywhere.com" });
+        String cityName = "Rio Prado";
 
-        when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1");
-        when(request.getContextPath()).thenReturn("cakeweb/");
+        List<CustomerResponse> rioPradoCustomers = loanService.getCustomersByCity(cityName);
+
+        Map<String, String[]> parameters = Map.of("city", new String[] { cityName });
+
+        when(request.getRequestURI()).thenReturn("thebank.com/loan/capture/customer?city=Rio%20Prado");
+        when(request.getContextPath()).thenReturn("thebank.com/");
         when(request.getParameterMap()).thenReturn(parameters);
 
         GetRequestExchange getRequestExchange = new GetRequestExchange(request);
@@ -123,11 +130,10 @@ class GetRequestExchangeTest {
             fail(e.getMessage());
         }
 
-        CustomerResult customerExpected = new CustomerResult(1, parameters.get("name")[0], parameters.get("email")[0]);
-
-        assertEquals(customerExpected, result, "The return of get method is different than expected");
+        assertEquals(rioPradoCustomers, result, "The return of get method is different than expected");
     }
 
+    /*
     @Test
     void getRequestExchangePathParameter() throws IOException {
         when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1");

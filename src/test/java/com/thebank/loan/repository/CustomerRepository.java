@@ -18,5 +18,4 @@ public interface CustomerRepository {
     void deleteById(Integer id);
 
     boolean existsById(Integer id);
-
 }

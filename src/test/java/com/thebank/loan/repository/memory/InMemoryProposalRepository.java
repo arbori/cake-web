@@ -52,6 +52,14 @@ public class InMemoryProposalRepository implements Repository<ProposalEntity, In
     }
 
     @Override
+    public Optional<ProposalEntity> findByIdAndCustomerId(Integer customerId, Integer proposalId) {
+        return Optional.ofNullable(store.values().stream()
+                .filter(proposal -> proposal.getCustomerId().equals(customerId) && proposal.getId().equals(proposalId))
+                .findFirst()
+                .orElse(null));
+    }
+
+    @Override
     public List<ProposalEntity> findAll() {
         return new ArrayList<>(store.values());
     }
@@ -65,6 +73,5 @@ public class InMemoryProposalRepository implements Repository<ProposalEntity, In
     public boolean existsById(Integer id) {
         return store.containsKey(id);
     }
-
 }
 

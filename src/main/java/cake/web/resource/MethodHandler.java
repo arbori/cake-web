@@ -33,7 +33,7 @@ public class MethodHandler {
      * @throws NoSuchMethodException if no method is found, or if multiple methods match by name and parameter count
      * @throws IllegalArgumentException if path parameters cannot be converted to the required types
      */
-    public MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName, List<String> pathParams) 
+    public MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName, List<Object> pathParams) 
             throws NoSuchMethodException, IllegalArgumentException 
     {
         if(resourceClass == null) {
@@ -74,11 +74,15 @@ public class MethodHandler {
      * @param paramCount the number of parameters
      * @return a unique cache key string
      */
-    private String buildCacheKey(Class<?> resourceClass, String httpMethodName, List<String> pathParams) {
+    private String buildCacheKey(Class<?> resourceClass, String httpMethodName, List<Object> pathParams) {
         StringBuilder sb = new StringBuilder();
 
         if(!pathParams.isEmpty()) {
-            pathParams.forEach(param -> sb.append(Convertion.kindOfParamType(param)).append(","));
+            pathParams.forEach(param -> 
+                sb.append((param instanceof String) ? 
+                        Convertion.kindOfParamType(param) : 
+                        param.getClass().getName())
+                    .append(","));
             sb.setLength(sb.length() - 1); // Remove trailing comma
         }
 

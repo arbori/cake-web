@@ -39,7 +39,7 @@ class MethodHandlerTest {
 
     // Helper class to expose internal logic for testing
     public static class MethodHandleTestHelper extends MethodHandler {
-        public static MethodResolution findMethodInternal(Class<?> resourceClass, List<String> pathParams, HttpMethodName httpMethodName) 
+        public static MethodResolution findMethodInternal(Class<?> resourceClass, List<Object> pathParams, HttpMethodName httpMethodName) 
                 throws NoSuchMethodException {
             // This would be the actual implementation
             // For now, we'll test via the concrete implementation

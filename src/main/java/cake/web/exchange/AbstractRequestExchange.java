@@ -1,25 +1,20 @@
 package cake.web.exchange;
 
 import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+
 import jakarta.servlet.http.HttpServletRequest;
 
-import cake.web.exception.HttpMethodException;
 import cake.web.exception.NotFoundException;
 import cake.web.exception.ResourceResolutionException;
-import cake.web.exchange.content.Convertion;
 import cake.web.resource.MethodHandler;
 import cake.web.resource.MethodResolution;
 
@@ -36,7 +31,7 @@ abstract class AbstractRequestExchange {
     protected static final MethodHandler methodHandler = new MethodHandler();
 
     protected final List<String> tokens;
-    protected List<String> pathParams;
+    protected List<Object> resourceParams;
     protected Map<String, String[]> queryParameterMap;
     protected StringBuilder bodyContent;
     protected Map<String, String> headers = new HashMap<>();
@@ -65,7 +60,7 @@ abstract class AbstractRequestExchange {
         }
 
         this.tokens = tokenizePath(requestURI, contextPath);
-        this.pathParams = new ArrayList<>();
+        this.resourceParams = new ArrayList<>();
         this.queryParameterMap = request.getParameterMap();
         this.headers = extractHeaders(request);
         this.authToken = extractAuthToken(request);
@@ -81,88 +76,96 @@ abstract class AbstractRequestExchange {
     }
 
     /**
-     * Processes the request by resolving the resource chain and invoking the
-     * appropriate http method.
+     * Abstract method to be implemented by subclasses to handle the request.
      * 
-     * @return the result of the http method invocation, or null if not found
-     * 
-     * @throws InstantiationException
-     * @throws IllegalAccessException
-     * @throws IllegalArgumentException
-     * @throws InvocationTargetException
-     * @throws NoSuchMethodException
+     * @return the result of the method invocation
+     * @throws IllegalArgumentException if method parameters do not match expected types
+     * @throws NoSuchMethodException    if no suitable method is found
+     * @throws ClassNotFoundException   if no resource class is found for the tokens
      */
-    public abstract Object call() throws InstantiationException, IllegalAccessException,
-            IllegalArgumentException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException,
-            HttpMethodException;
+    public abstract Object call() 
+        throws IllegalArgumentException, NoSuchMethodException, ClassNotFoundException;
 
     /**
-     * Recursively resolves the resource chain based on URI tokens and path
-     * parameters.
-     * It builds package names, loads classes, and invokes parent http methods
-     * as needed.
-     *
-     * @param tokens         the list of remaining URI tokens
-     * @param pathParams     the list of collected path parameters
-     * @param parentResource the current parent resource instance
-     * @return the final resolved resource instance or null if not found
-     * @throws NoSuchMethodException     if no suitable get method is found
-     * @throws InvocationTargetException if method invocation fails
-     * @throws IllegalArgumentException  if no method matches the parameter types
-     * @throws IllegalAccessException    if the class or its nullary constructor is
-     *                                   not accessible
-     * @throws InstantiationException    if the class that declares the underlying
-     *                                   constructor represents an abstract class
-     * @throws HttpMethodException       if method invocation fails
+     * Resolves the resource chain based on the request tokens and parameters,
+     * and invokes the method corresponding to the given HTTP method name.
+     * 
+     * @param httpMethod the HTTP method name (e.g., "get", "post")
+     * @return the result of the method invocation
+     * @throws IllegalArgumentException if method parameters do not match expected types
+     * @throws NoSuchMethodException    if no suitable method is found
+     * @throws ClassNotFoundException   if no resource class is found for the tokens
+     */
+    protected Object call(HttpMethodName httpMethod) 
+        throws IllegalArgumentException, NoSuchMethodException, ClassNotFoundException
+    {
+        Object resource = lookForResource();
+
+        MethodResolution methodResolution = findHttpMethod(resource.getClass(), httpMethod);
+
+        return methodResolution.call(resource);
+    }
+
+    /**
+     * Resolves the resource chain based on the request tokens and parameters.
+     * It iteratively tries to load classes corresponding to the path tokens,
+     * instantiating resources and invoking parent get methods for parent resources
+     * to pass the result as parameter for the child resource.
+     * 
+     * @return the resolved resource object
+     * @throws ClassNotFoundException    if no resource class is found for the tokens
+     * @throws NoSuchMethodException    if a required method is not found during resolution
+     * @throws IllegalArgumentException if method parameters do not match expected types
      */
     protected Object lookForResource() throws ClassNotFoundException, NoSuchMethodException, IllegalArgumentException {
         Object resource = null;
         StringBuilder fullClassName = new StringBuilder();
 
-        for (String token : tokens) {
-            Optional<Class<?>> classFounded = tryLoadClass(fullClassName + "." + capitalize(token));
+        Iterator<String> tokenIterator = tokens.iterator();
+        Optional<Class<?>> classFounded;
+        String token;
 
-            // There is no resource.
-            if (resource == null) {
-                // If no class found, ...
-                if (!classFounded.isPresent()) {
-                    // ... keep building package name.
-                    fullClassName.append(fullClassName.isEmpty() ? "" : ".").append(token);
-                }
-                // if we have a class, ...
-                else {
-                    // ... this is the root resource.
-                    resource = instantiateResource(classFounded.get());
-                }
+        // First we need to find the root resource, which is the first class that can be loaded from the tokens.
+        while(tokenIterator.hasNext() && resource == null) {
+            token = tokenIterator.next();
+            classFounded = tryLoadClass(fullClassName + "." + capitalize(token));
+
+            // If no class found, ...
+            if (!classFounded.isPresent()) {
+                // ... keep building package name.
+                fullClassName.append(fullClassName.isEmpty() ? "" : ".").append(token);
             }
-            // The resource was founded previously.
+            // if we have a class, ...
             else {
-                // If other class was not found, ...
-                if (!classFounded.isPresent()) {
-                    // ... this token is a path parameter.
-                    pathParams.add(token);
-                }
-                // Other resource was founded.
-                else {
-                    // find get method on parent resource to obtain child parentResource attribute.
-                    MethodResolution parentResourceGetMethod = findHttpMethod(resource.getClass(), pathParams,
-                        HttpMethodName.GET);
+                // ... this is the root resource.
+                resource = instantiateResource(classFounded.get());
+            }
+        }
 
-                    // call parent's get method to obtain child parentResource attribute.
-                    Object parentResourceResult = parentResourceGetMethod.call(resource);
+        // The resource was founded previously. Then, take the next tokens and try to find child resources or path parameters.
+        while(resource != null && tokenIterator.hasNext()) {
+            token = tokenIterator.next();
+            classFounded = tryLoadClass(fullClassName + "." + capitalize(token));
 
-                    // inject parent result into child resource
-                    Object childResource = instantiateResource(classFounded.get());
+            // The resource was founded previously.
+            // If other class was not found, ...
+            if (!classFounded.isPresent()) {
+                // ... this token is a path parameter.
+                resourceParams.add(token);
+            }
+            // Other resource was founded.
+            else {
+                // find get method on parent resource to obtain child parentResource attribute.
+                MethodResolution parentResourceGetMethod = findHttpMethod(resource.getClass(), HttpMethodName.GET);
 
-                    injectParent(childResource, parentResourceResult);
+                // call parent's get method to obtain child parentResource attribute.
+                Object parentResourceResult = parentResourceGetMethod.call(resource);
 
-                    // if not terminal (there are more resource tokens), the callResult becomes
-                    // previousResult for next resource
-                    pathParams.clear();
+                // put parent result as parameter for child resource resolution (if any)
+                resourceParams.add(parentResourceResult);
 
-                    // Set the last resource founded as current resource
-                    resource = childResource;
-                }
+                // inject parent result into child resource
+                resource = instantiateResource(classFounded.get());
             }
         }
 
@@ -184,38 +187,13 @@ abstract class AbstractRequestExchange {
      * @throws NoSuchMethodException    if no suitable method is found
      * @throws IllegalArgumentException if no method matches the parameter types
      */
-    protected MethodResolution findHttpMethod(Class<?> resourceClass, List<String> pathParams, HttpMethodName httpMethodName)
+    protected MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName)
             throws NoSuchMethodException, IllegalArgumentException {
-        MethodResolution methodResolution = methodHandler.findHttpMethod(resourceClass, httpMethodName, pathParams);
+        MethodResolution methodResolution = methodHandler.findHttpMethod(resourceClass, httpMethodName, resourceParams);
             
-        pathParams.clear();
+        resourceParams.clear();
         
         return methodResolution;
-    }
-
-    /**
-     * Sets attributes on the given instance using the provided parameters map.
-     * It tries to find setter methods first, then falls back to direct field
-     * access.
-     * Only the first value of each parameter is used.
-     * 
-     * @param instance the object instance to set attributes on
-     * @param params   the map of parameter names to values
-     */
-    protected void setAttributes(Object instance, Map<String, String[]> params) {
-        if (params == null || params.isEmpty()) {
-            return;
-        }
-
-        Class<?> clazz = instance.getClass();
-
-        params.forEach((name, values) -> {
-            String value;
-
-            if ((value = (values != null && values.length > 0) ? values[0] : null) != null) {
-                trySetAttributes(name, value, clazz, instance);
-            }
-        });
     }
 
     /**
@@ -231,9 +209,20 @@ abstract class AbstractRequestExchange {
                 ? uri.substring(contextPath.length())
                 : uri;
 
-        return Arrays.stream(path.split("/"))
-                .filter(s -> !s.isEmpty())
-                .toList();
+        List<String> tokenized = Arrays.asList(path.split("/"));
+        String queryString;
+
+        // Check if last token conteins query parameters and remove them from the token list.
+        if (!tokenized.isEmpty()) {
+            String lastToken = tokenized.get(tokenized.size() - 1);
+
+            if (lastToken.contains("?")) {
+                queryString = lastToken.substring(lastToken.indexOf("?") + 1);
+                tokenized.set(tokenized.size() - 1, lastToken.substring(0, lastToken.indexOf("?")));
+            }
+        }
+
+        return tokenized;
     }
 
     /**
@@ -280,37 +269,6 @@ abstract class AbstractRequestExchange {
     }
 
     /**
-     * Tries to set a single attribute on the given instance by name and value.
-     * It first attempts to find a setter method, then falls back to direct field
-     * access.
-     * 
-     * @param name     the attribute name
-     * @param value    the attribute value as string
-     * @param clazz    the class of the instance
-     * @param instance the object instance to set the attribute on
-     */
-    private void trySetAttributes(String name, String value, Class<?> clazz, Object instance) {
-        String setterName = "set" + capitalize(name);
-
-        // try setter methods first
-        try {
-            for (Method m : clazz.getMethods()) {
-                if (!m.getName().equalsIgnoreCase(setterName) || m.getParameterCount() != 1) {
-                    continue;
-                }
-
-                Class<?> paramType = m.getParameterTypes()[0];
-                Object converted = Convertion.convert(value, paramType);
-                m.invoke(instance, converted);
-                
-                return;
-            }
-        } catch (Exception _) {
-            // No setter found, fallback to field
-        }
-    }
-
-    /**
      * Capitalizes the first letter of the string.
      * 
      * @param s the input string
@@ -321,103 +279,6 @@ abstract class AbstractRequestExchange {
             return "";
 
         return Character.toUpperCase(s.charAt(0)) + s.substring(1);
-    }
-
-    /**
-     * Attempts to inject parentResult into childInstance:
-     * - Prefer setter whose parameter type is assignable from
-     * parentResult.getClass()
-     * and whose name matches set<ParentName> (matching stripped suffixes).
-     * - Otherwise try any setter with param type assignable from parent.
-     * - Otherwise try direct field injection by type + name heuristics.
-     */
-    private void injectParent(Object childInstance, Object parentResult) {
-        if (parentResult == null) {
-            return;
-        }
-
-        Class<?> childClass = childInstance.getClass();
-        Class<?> parentClass = parentResult.getClass();
-
-        // build candidate setter names: try parent simple name and stripped variants
-        String parentSimple = parentClass.getSimpleName();
-        String stripped = stripCommonSuffixes(parentSimple);
-
-        List<String> candidateSetterNames = new ArrayList<>();
-        candidateSetterNames.add("set" + parentSimple);
-        candidateSetterNames.add("set" + stripped);
-
-        // first pass: exact name + assignable type
-        for (String setterName : candidateSetterNames) {
-            try {
-                for (Method m : childClass.getMethods()) {
-                    if (!m.getName().equalsIgnoreCase(setterName) || m.getParameterCount() != 1) {
-                        continue;
-                    }
-
-                    Class<?> paramType = m.getParameterTypes()[0];
-
-                    if (paramType.isAssignableFrom(parentClass)) {
-                        m.invoke(childInstance, parentResult);
-                        return;
-                    }
-                }
-            } catch (ReflectiveOperationException _) {
-                // try next candidate
-            }
-        }
-
-        // second pass: any setter with parameter assignable from parent type
-        try {
-            for (Method m : childClass.getMethods()) {
-                if (!m.getName().startsWith("set") || m.getParameterCount() != 1) {
-                    continue;
-                }
-
-                Class<?> paramType = m.getParameterTypes()[0];
-
-                if (paramType.isAssignableFrom(parentClass)) {
-                    m.invoke(childInstance, parentResult);
-                    return;
-                }
-            }
-        } catch (ReflectiveOperationException _) {
-            // try next candidate
-        }
-
-        // third pass: try fields
-        for (Field f : childClass.getDeclaredFields()) {
-            if (f.getType().isAssignableFrom(parentClass)) {
-                try {
-                    MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(childClass, MethodHandles.lookup());
-                    VarHandle handle = lookup.unreflectVarHandle(f);
-                    handle.set(childInstance, parentResult);
-
-                    return;
-                } catch (ReflectiveOperationException _) {
-                    // try next field
-                }
-            }
-        }
-
-    }
-
-    /**
-     * Strips common suffixes like "Result", "DTO", "Entity" from a class name.
-     * 
-     * @param s the input string
-     * @return the stripped string
-     */
-    private String stripCommonSuffixes(String s) {
-        String[] suffixes = { "Result", "DTO", "Entity" };
-
-        for (String suf : suffixes) {
-            if (s.endsWith(suf) && s.length() > suf.length()) {
-                return s.substring(0, s.length() - suf.length());
-            }
-        }
-
-        return s;
     }
 
     /**

@@ -261,7 +261,7 @@ public class LoanService {
         return presentValue;
     }
 
-    public Optional<ProposalResponse> getProposal(Integer proposalId) {
+    public Optional<ProposalResponse> getProposal(Integer customerId,Integer proposalId) {
         return loanRequestRepository.findById(proposalId).map(loan -> new ProposalResponse()
                 .setId(loan.getId())
                 .setCustomerId(loan.getCustomerId())
@@ -269,5 +269,21 @@ public class LoanService {
                 .setNumberOfInstallments(loan.getNumberOfInstallments())
                 .setMonthlyInterestRate(loan.getMonthlyInterestRate())
                 .setRequestDate(loan.getRequestDate()));
+    }
+
+    public List<CustomerResponse> getCustomersByCity(String cityName) {
+        List<Integer> addressIds = addressRepository.findAll().stream()
+            .filter(addr -> addr.getCity().equalsIgnoreCase(cityName))
+            .map(AddressEntity::getId)
+            .toList();
+
+        return customerRepository.findAll().stream()
+            .filter(customer -> addressIds.contains(customer.getAddressId()))
+            .map(customer -> new CustomerResponse()
+                    .setId(customer.getId())
+                    .setName(customer.getName())
+                    .setSalary(customer.getSalary())
+                    .setAddressId(customer.getAddressId()))
+            .toList();
     }
 }

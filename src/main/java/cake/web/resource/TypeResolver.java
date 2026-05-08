@@ -1,6 +1,5 @@
 package cake.web.resource;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -31,14 +30,13 @@ public class TypeResolver {
      * @return List of methods that are compatible with the path parameters
      * @throws NoSuchMethodException if no compatible method is found or if the call is ambiguous
      */
-    public static MethodResolution methodResolution(Class<?> resourceClass, HttpMethodName httpMethodName, List<String> pathParams) throws NoSuchMethodException {
+    public static MethodResolution methodResolution(Class<?> resourceClass, HttpMethodName httpMethodName, List<Object> pathParams) throws NoSuchMethodException {
         if(resourceClass == null || httpMethodName == null || pathParams == null) {
             throw new IllegalArgumentException("Arguments cannot be null");
         }
         
         try {
-            Constructor<?> ctor = resourceClass.getConstructor();  // ✅ Only checks, no instantiation
-            if (!Modifier.isPublic(ctor.getModifiers())) {
+            if (!Modifier.isPublic(resourceClass.getConstructor().getModifiers())) {
                 throw new NoSuchMethodException("Resource class: " + resourceClass.getName() + " has no public no-arg constructor.");
             }
         } catch (NoSuchMethodException _) {
@@ -47,10 +45,16 @@ public class TypeResolver {
 
         List<Method> filteredMethods = Arrays.stream(resourceClass.getMethods())
             .filter(m -> (
+                m.getName().equals(httpMethodName.toString()) &&
                 java.lang.reflect.Modifier.isPublic(m.getModifiers()) &&
-                !java.lang.reflect.Modifier.isStatic(m.getModifiers()) &&
-                m.getName().equals(httpMethodName.toString())))
+                !java.lang.reflect.Modifier.isStatic(m.getModifiers())))
             .toList();
+
+        if(filteredMethods.isEmpty()) {
+            throw new NoSuchMethodException(
+                "No public non-static method named '" + httpMethodName + "' found in " + resourceClass.getName()
+            );
+        }
 
         List<MethodResolution> candidates = new ArrayList<>();
         Optional<List<Object>> parameterData;
@@ -84,17 +88,18 @@ public class TypeResolver {
         return candidates.getFirst(); // Return the single compatible method
     }
 
+    // Helper method to format parameter types for error messages
     private static String formatParamTypes(Class<?>[] types) {
         return Arrays.stream(types).map(Class::getSimpleName).reduce((a,b) -> a + "," + b).orElse("");
     }
 
     /**
-     * Converts the given path parameter strings to their corresponding types based on the method's parameter types.
-     * @param method the method for which to convert parameters
-     * @param pathParams the path parameter values from the request
-     * @return List of DataType objects containing the target type and converted value for each parameter
+     * Attempts to convert the path parameters to the types required by the method's parameters.
+     * @param method the method for which to create the parameter data list
+     * @param pathParams the original path parameters as objects
+     * @return an Optional containing the list of converted parameter values if successful, or empty if conversion fails
      */
-    private static Optional<List<Object>> createParameterDataList(Method method, List<String> pathParams) {
+    private static Optional<List<Object>> createParameterDataList(Method method, List<Object> pathParams) {
         if(method == null || pathParams == null) {
             return Optional.empty();
         }

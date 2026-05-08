@@ -13,6 +13,8 @@ public interface ProposalRepository {
 
     Optional<ProposalEntity> findById(Integer id);
 
+    Optional<ProposalEntity> findByIdAndCustomerId(Integer customerId, Integer proposalId);
+
     List<ProposalEntity> findAll();
 
     void deleteById(Integer id);

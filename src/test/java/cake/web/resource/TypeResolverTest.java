@@ -61,7 +61,7 @@ class TypeResolverTest {
     @Test
     void shouldResolveMethodWithZeroParameters() throws Exception {
         // Arrange
-        List<String> pathParams = List.of();
+        List<Object> pathParams = List.of();
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
@@ -78,7 +78,7 @@ class TypeResolverTest {
     @Test
     void shouldResolveMethodWithOneIntegerParameter() throws Exception {
         // Arrange
-        List<String> pathParams = List.of("123");
+        List<Object> pathParams = List.of(123);
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
@@ -96,7 +96,7 @@ class TypeResolverTest {
     @Test
     void shouldResolveMethodWithOneStringParameter() throws Exception {
         // Arrange
-        List<String> pathParams = List.of("john");
+        List<Object> pathParams = List.of("john");
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
@@ -114,7 +114,7 @@ class TypeResolverTest {
     @Test
     void shouldResolveMethodWithMultipleParameters() throws Exception {
         // Arrange
-        List<String> pathParams = List.of("john", "25");
+        List<Object> pathParams = List.of("john", 25);
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
@@ -135,7 +135,7 @@ class TypeResolverTest {
     void shouldResolveMethodWithUUIDParameter() throws Exception {
         // Arrange
         String uuidString = "550e8400-e29b-41d4-a716-446655440000";
-        List<String> pathParams = List.of(uuidString);
+        List<Object> pathParams = List.of(uuidString);
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
@@ -154,7 +154,7 @@ class TypeResolverTest {
     @Test
     void shouldThrowExceptionWhenMultipleMethodsMatch() {
         // Arrange
-        List<String> pathParams = List.of("123");
+        List<Object> pathParams = List.of(123);
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
@@ -167,7 +167,7 @@ class TypeResolverTest {
     @Test
     void shouldThrowExceptionWhenMultipleMethodsMatchWithMultipleParameters() {
         // Arrange
-        List<String> pathParams = List.of("123", "1");
+        List<Object> pathParams = List.of(123, 1);
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
@@ -182,20 +182,20 @@ class TypeResolverTest {
     @Test
     void shouldThrowExceptionWhenNoMethodWithMatchingNameExists() {
         // Arrange
-        List<String> pathParams = List.of();
+        List<Object> pathParams = List.of();
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
             TypeResolver.methodResolution(EmptyResource.class, HttpMethodName.HEAD, pathParams)
         );
         
-        assertTrue(exception.getMessage().toLowerCase().contains("no method named"));
+        assertTrue(exception.getMessage().toLowerCase().contains("no public non-static method named"));
     }
 
     @Test
     void shouldThrowExceptionWhenNoMethodWithCompatibleParametersExists() {
         // Arrange
-        List<String> pathParams = List.of("123", "456", "789"); // 3 params, but no method with 3 params
+        List<Object> pathParams = List.of("123", "456", "789"); // 3 params, but no method with 3 params
         
         // Act & Assert
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
@@ -208,7 +208,7 @@ class TypeResolverTest {
     @Test
     void shouldThrowExceptionWhenParameterTypesDoNotMatch() {
         // Arrange
-        List<String> pathParams = List.of("not a number", "also not a number");
+        List<Object> pathParams = List.of("not a number", "also not a number");
         
         // Act & Assert - SimpleResource has get(Integer) but value is not a number
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
@@ -222,7 +222,7 @@ class TypeResolverTest {
 
     @Test
     void shouldThrowExceptionWhenResourceClassIsNull() {
-        List<String> pathParams = List.of();
+        List<Object> pathParams = List.of();
         
         assertThrows(IllegalArgumentException.class, () ->
             TypeResolver.methodResolution(null, HttpMethodName.GET, pathParams)
@@ -231,7 +231,7 @@ class TypeResolverTest {
 
     @Test
     void shouldThrowExceptionWhenMethodNameIsNull() {
-        List<String> pathParams = List.of();
+        List<Object> pathParams = List.of();
         
         assertThrows(IllegalArgumentException.class, () ->
             TypeResolver.methodResolution(SimpleResource.class, null, pathParams)
@@ -248,7 +248,7 @@ class TypeResolverTest {
     @Test
     void shouldHandleEmptyPathParams() throws Exception {
         // Arrange
-        List<String> pathParams = List.of();
+        List<Object> pathParams = List.of();
         
         // Act
         MethodResolution resolution = TypeResolver.methodResolution(
@@ -267,7 +267,7 @@ class TypeResolverTest {
         // SimpleResource has: get(String) and get(Integer)
         // "abc" cannot be Integer, so should match get(String)
         
-        List<String> pathParams = List.of("abc");
+        List<Object> pathParams = List.of("abc");
         
         MethodResolution resolution = TypeResolver.methodResolution(
             SimpleResource.class, HttpMethodName.GET, pathParams
@@ -285,7 +285,7 @@ class TypeResolverTest {
         // With pathParams ["123", "john"], both are compatible
         // Should be ambiguous
         
-        List<String> pathParams = List.of("123", "john");
+        List<Object> pathParams = List.of(123, "john");
         
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
             TypeResolver.methodResolution(MixedTypesResource.class, HttpMethodName.POST, pathParams)
@@ -296,7 +296,7 @@ class TypeResolverTest {
 
     @Test
     void shouldThrowExceptionWhenResourceClassHasNoPublicNoArgConstructor() {
-        List<String> pathParams = List.of();    
+        List<Object> pathParams = List.of();    
      
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
             TypeResolver.methodResolution(NoDefaultConstructorResource.class, HttpMethodName.GET, pathParams)
@@ -307,12 +307,12 @@ class TypeResolverTest {
 
     @Test
     void shouldThrowExceptionWhenResourceClassHasStaticMethod() {
-        List<String> pathParams = List.of();    
+        List<Object> pathParams = List.of();    
      
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
             TypeResolver.methodResolution(StaticResourceMethod.class, HttpMethodName.GET, pathParams)
         );
      
-        assertTrue(exception.getMessage().toLowerCase().contains("no method named"));
+        assertTrue(exception.getMessage().toLowerCase().contains("no public non-static method named"));
     }
 }

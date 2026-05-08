@@ -11,8 +11,6 @@ import com.thebank.loan.entity.CustomerEntity;
 import com.thebank.loan.repository.CustomerRepository;
 import com.thebank.loan.repository.Repository;
 
-import loan.capture.CustomerResponse;
-
 public class InMemoryCustomerRepository implements Repository<CustomerEntity, Integer>, CustomerRepository {
     private final Map<Integer, CustomerEntity> store = new ConcurrentHashMap<>();
     private final AtomicInteger idGenerator = new AtomicInteger(1);
