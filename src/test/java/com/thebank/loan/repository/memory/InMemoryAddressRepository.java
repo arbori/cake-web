@@ -45,6 +45,10 @@ public class InMemoryAddressRepository implements Repository<AddressEntity, Inte
 
     @Override
     public Optional<AddressEntity> findById(Integer id) {
+        if(id == null) {
+            return Optional.empty();
+        }
+
         return Optional.ofNullable(store.get(id));
     }
 
@@ -55,11 +59,17 @@ public class InMemoryAddressRepository implements Repository<AddressEntity, Inte
 
     @Override
     public void deleteById(Integer id) {
-        store.remove(id);
+        if(id != null) {
+            store.remove(id);
+        }
     }
 
     @Override
     public boolean existsById(Integer id) {
+        if(id == null) {
+            return false;
+        }
+
         return store.containsKey(id);
     }
 }

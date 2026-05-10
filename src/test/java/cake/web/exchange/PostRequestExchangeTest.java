@@ -11,10 +11,13 @@ import org.mockito.MockitoAnnotations;
 
 import com.thebank.loan.entity.CustomerEntity;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import loan.capture.CustomerResponse;
+
 import java.io.*;
 import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 class PostRequestExchangeTest {
     @Mock
     private HttpServletRequest request;
@@ -28,10 +31,10 @@ class PostRequestExchangeTest {
 
     @Test
     void postRequestExchangeWithBodyContent() throws Exception {
-        String bodyJson = "{ \"name\": \"John Doe\", \"email\": \"john.doe@anywhere.com\" }";
+        String bodyJson = "{\"customerRequest\":{ \"name\": \"John Doe\", \"salary\": \"15000.0\"}}";
 
-        when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer");
-        when(request.getContextPath()).thenReturn("cakeweb/");
+        when(request.getRequestURI()).thenReturn("thebank.com/loan/capture/customer/");
+        when(request.getContextPath()).thenReturn("thebank.com/");
         when(request.getReader()).thenReturn(new BufferedReader(new StringReader(bodyJson)));
         when(request.getParameterMap()).thenReturn(Map.of());
 
@@ -39,9 +42,12 @@ class PostRequestExchangeTest {
 
         Object result = exchange.call();
 
-        assertTrue(result instanceof CustomerEntity, "Result should be a CustomerEntity");
+        assertTrue(result instanceof CustomerResponse, "Result should be a CustomerResponse");
 
-        CustomerEntity expected = new CustomerEntity().setId(1).setName("John Doe");
+        CustomerResponse retrieved = (CustomerResponse) result;
+        CustomerResponse expected = new CustomerResponse().setName("John Doe").setSalary(15000.0);
+        expected.setId(retrieved.getId()); // ID is generated, so we set it to match the result for equality check
+        
         assertEquals(expected, result);
     }
 

@@ -1,5 +1,7 @@
 package loan.capture;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import com.thebank.loan.service.LoanService;
@@ -13,8 +15,29 @@ import cake.web.exception.ParameterNotFoundException;
 public class Customer {
     private LoanService loanService = new LoanService();
 
+    private CustomerFilter customerFilter;
+
+    public void setCustomerFilter(CustomerFilter customerFilter) {
+        this.customerFilter = customerFilter;
+    }
+
     /**
-     * GET endpoint simulation
+     * GET endpoint simulation for retrieving customers based on query parameters
+     */
+    public List<CustomerResponse> get() {
+        if(isCustomersByCityRequest()) {
+            return loanService.getCustomersByCity(customerFilter.getCity());
+        }
+
+        return Arrays.asList();
+    }
+
+    private boolean isCustomersByCityRequest() {
+        return customerFilter != null && customerFilter.getCity() != null && !customerFilter.getCity().isEmpty();
+    }
+
+    /**
+     * GET endpoint simulation for retrieve customer details by ID
      */
     public CustomerResponse get(Integer customerId) throws ParameterNotFoundException {
         if(customerId != null) {
@@ -30,10 +53,16 @@ public class Customer {
         throw new ParameterNotFoundException("customerId is required");
     }
 
+    private CustomerRequest customerRequest;
+    
+    public void setCustomerRequest(CustomerRequest customerRequest) {
+        this.customerRequest = customerRequest;
+    }
+
     /**
      * POST endpoint simulation
      */
-    public CustomerResponse post(CustomerRequest customerRequest) throws BadRequestException {
+    public CustomerResponse post() throws BadRequestException {
         try {
             if (customerRequest == null) {
                 throw new BadRequestException("No body in request");

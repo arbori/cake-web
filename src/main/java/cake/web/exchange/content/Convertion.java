@@ -1,6 +1,5 @@
 package cake.web.exchange.content;
 
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -49,8 +48,22 @@ public class Convertion {
             return object;
         }
 
-        String value = object.toString();
+        if(targetType == BodyContent.class && object instanceof String bodyContent) {
+            return toJson(bodyContent, targetType);
+        }
 
+        return convertString(object.toString(), targetType);
+    }
+
+    /**
+     * Converts a string value to the specified target type.
+     *
+     * @param value the string value to convert
+     * @param targetType the class of the target type to convert to
+     * @return the converted object of the target type
+     * @throws IllegalArgumentException if the conversion cannot be performed due to unsupported types or invalid formats
+     */
+    public static Object convertString(String value, Class<?> targetType) {
         // Check if the value looks like any integer value (byte, short, int, long)
         if (value.matches(INTEGER_REGEX) || value.matches(FLOATING_POINT_REGEX)) {
             return toNumber(value, targetType);
@@ -235,36 +248,5 @@ public class Convertion {
         }
 
         return "string";
-    }
-
-    /**
-     * Tries to set a single attribute on the given instance by name and value.
-     * It first attempts to find a setter method, then falls back to direct field
-     * access.
-     * 
-     * @param name     the attribute name
-     * @param value    the attribute value as string
-     * @param clazz    the class of the instance
-     * @param instance the object instance to set the attribute on
-     */
-    public static void trySetAttributes(String name, String value, Class<?> clazz, Object instance) {
-        String setterName = "set" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
-
-        // try setter methods first
-        try {
-            for (Method m : clazz.getMethods()) {
-                if (!m.getName().equalsIgnoreCase(setterName) || m.getParameterCount() != 1) {
-                    continue;
-                }
-
-                Class<?> paramType = m.getParameterTypes()[0];
-                Object converted = Convertion.convert(value, paramType);
-                m.invoke(instance, converted);
-
-                return;
-            }
-        } catch (Exception _) {
-            // No setter found, fallback to field
-        }
     }
 }

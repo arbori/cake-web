@@ -19,6 +19,10 @@ import cake.web.exchange.content.Convertion;
  * changes its method signatures, stale cache entries are not reused.
  */
 public class MethodHandler {
+    private MethodHandler() {
+        // static class
+    }
+    
     // Cache to store resolved methods based on resource class, HTTP method name, and parameter types
     private static final Map<String, Method> methodCache = new ConcurrentHashMap<>();
 
@@ -33,7 +37,7 @@ public class MethodHandler {
      * @throws NoSuchMethodException if no method is found, or if multiple methods match by name and parameter count
      * @throws IllegalArgumentException if path parameters cannot be converted to the required types
      */
-    public MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName, List<Object> pathParams) 
+    public static MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName, List<Object> pathParams) 
             throws NoSuchMethodException, IllegalArgumentException 
     {
         if(resourceClass == null) {
@@ -50,21 +54,21 @@ public class MethodHandler {
         String cacheKey = buildCacheKey(resourceClass, methodName, pathParams);
                 
         // First, find the unique method by name and parameter count
-        Method resolvedMethod = methodCache.get(cacheKey);
+        Method methodFromCache = methodCache.get(cacheKey);
 
-        MethodResolution resolution = null;
+        MethodResolution methodResolution = null;
 
-        if(resolvedMethod != null) {
-            List<Object> convertedArgs = Convertion.convertPathParams(pathParams, resolvedMethod.getParameterTypes());
+        if(methodFromCache != null) {
+            List<Object> convertedArgs = Convertion.convertPathParams(pathParams, methodFromCache.getParameterTypes());
 
-            resolution = new MethodResolution(resolvedMethod, convertedArgs);
+            methodResolution = new MethodResolution(methodFromCache, convertedArgs);
         } else {        
-            resolution = TypeResolver.methodResolution(resourceClass, httpMethodName, pathParams); // Validate method resolution first (throws if no method or ambiguous)
+            methodResolution = TypeResolver.methodResolution(resourceClass, httpMethodName, pathParams); // Validate method resolution first (throws if no method or ambiguous)
 
-            methodCache.put(cacheKey, resolution.method());
+            methodCache.put(cacheKey, methodResolution.method());
         } 
         
-        return resolution;
+        return methodResolution;
     }
 
     /**
@@ -74,7 +78,7 @@ public class MethodHandler {
      * @param paramCount the number of parameters
      * @return a unique cache key string
      */
-    private String buildCacheKey(Class<?> resourceClass, String httpMethodName, List<Object> pathParams) {
+    private static String buildCacheKey(Class<?> resourceClass, String httpMethodName, List<Object> pathParams) {
         StringBuilder sb = new StringBuilder();
 
         if(!pathParams.isEmpty()) {

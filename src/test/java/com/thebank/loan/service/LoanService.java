@@ -33,10 +33,6 @@ public class LoanService {
 
     // CRUD Customer
     public CustomerResponse createCustomer(String name, Double salary, Integer addressId) {
-        if (!addressRepository.existsById(addressId)) {
-            throw new IllegalArgumentException("Address not found");
-        }
-            
         CustomerEntity savedCustomer = customerRepository.save(new CustomerEntity()
             .setName(name)
             .setSalary(salary)

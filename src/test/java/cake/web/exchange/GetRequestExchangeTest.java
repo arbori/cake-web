@@ -12,8 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import loan.capture.AddressResponse;
 import loan.capture.CustomerResponse;
 import loan.capture.ProposalResponse;
@@ -22,6 +20,9 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import com.thebank.loan.service.LoanService;
 
@@ -115,11 +116,15 @@ class GetRequestExchangeTest {
 
         List<CustomerResponse> rioPradoCustomers = loanService.getCustomersByCity(cityName);
 
-        Map<String, String[]> parameters = Map.of("city", new String[] { cityName });
-
-        when(request.getRequestURI()).thenReturn("thebank.com/loan/capture/customer?city=Rio%20Prado");
+        when(request.getRequestURI()).thenReturn("thebank.com/loan/capture/customer");
         when(request.getContextPath()).thenReturn("thebank.com/");
-        when(request.getParameterMap()).thenReturn(parameters);
+        when(request.getParameterMap()).thenReturn(
+            Map.of(
+                "city", new String[] { cityName },
+                "minimumSalary", new String[] { "1500.00" },
+                "maximumSalary", new String[] { "2500.00" }
+            )
+        );
 
         GetRequestExchange getRequestExchange = new GetRequestExchange(request);
 

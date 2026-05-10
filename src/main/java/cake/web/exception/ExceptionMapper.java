@@ -1,7 +1,6 @@
 package cake.web.exception;
 
-import jakarta.servlet.http.HttpServletResponse;
-
+import javax.servlet.http.HttpServletResponse;
 /**
  * Interface for mapping exceptions to HTTP responses.
  */

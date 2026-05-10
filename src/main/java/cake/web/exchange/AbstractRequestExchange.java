@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 
 import cake.web.exception.NotFoundException;
 import cake.web.exception.ResourceResolutionException;
@@ -27,9 +27,9 @@ import cake.web.resource.MethodResolution;
  */
 abstract class AbstractRequestExchange {
     private static final Map<String, Class<?>> resourceCache = new ConcurrentHashMap<>();
-
-    protected static final MethodHandler methodHandler = new MethodHandler();
-
+    
+    private final HttpMetadataHandle httpMetadataHandle;
+    
     protected final List<String> tokens;
     protected List<Object> resourceParams;
     protected Map<String, String[]> queryParameterMap;
@@ -47,6 +47,8 @@ abstract class AbstractRequestExchange {
      * @throws IllegalArgumentException if requestURI or contextPath are null/empty
      */
     AbstractRequestExchange(HttpServletRequest request) throws IOException {
+        httpMetadataHandle = new HttpMetadataHandle(request);
+
         String requestURI = request.getRequestURI(); // Extract the path from the URI
         String contextPath = request.getContextPath(); // Assuming contextPath is part of the path
 
@@ -70,7 +72,7 @@ abstract class AbstractRequestExchange {
             request.getReader().lines().forEach(line -> bodyContent.append(line).append("\n"));
         }
 
-        if (tokens == null || tokens.isEmpty()) {
+        if (tokens.isEmpty()) {
             throw new IllegalArgumentException("No resource tokens found in the request URI.");
         }
     }
@@ -117,7 +119,7 @@ abstract class AbstractRequestExchange {
      * @throws NoSuchMethodException    if a required method is not found during resolution
      * @throws IllegalArgumentException if method parameters do not match expected types
      */
-    protected Object lookForResource() throws ClassNotFoundException, NoSuchMethodException, IllegalArgumentException {
+    private Object lookForResource() throws ClassNotFoundException, NoSuchMethodException, IllegalArgumentException {
         Object resource = null;
         StringBuilder fullClassName = new StringBuilder();
 
@@ -173,6 +175,9 @@ abstract class AbstractRequestExchange {
             throw new ClassNotFoundException("No resource found for given URI");
         }
 
+        // Before returning the resource, set the metadata for the resource to be used in method invocation (e.g., for query parameter binding).
+        httpMetadataHandle.setResourceMetaData(resource);
+
         return resource;
     }
 
@@ -187,9 +192,9 @@ abstract class AbstractRequestExchange {
      * @throws NoSuchMethodException    if no suitable method is found
      * @throws IllegalArgumentException if no method matches the parameter types
      */
-    protected MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName)
+    private MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName)
             throws NoSuchMethodException, IllegalArgumentException {
-        MethodResolution methodResolution = methodHandler.findHttpMethod(resourceClass, httpMethodName, resourceParams);
+        MethodResolution methodResolution = MethodHandler.findHttpMethod(resourceClass, httpMethodName, resourceParams);
             
         resourceParams.clear();
         
@@ -210,14 +215,12 @@ abstract class AbstractRequestExchange {
                 : uri;
 
         List<String> tokenized = Arrays.asList(path.split("/"));
-        String queryString;
 
         // Check if last token conteins query parameters and remove them from the token list.
         if (!tokenized.isEmpty()) {
             String lastToken = tokenized.get(tokenized.size() - 1);
 
             if (lastToken.contains("?")) {
-                queryString = lastToken.substring(lastToken.indexOf("?") + 1);
                 tokenized.set(tokenized.size() - 1, lastToken.substring(0, lastToken.indexOf("?")));
             }
         }

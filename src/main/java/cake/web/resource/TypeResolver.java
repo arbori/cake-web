@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.IntStream;
 
 import cake.web.exchange.HttpMethodName;
 import cake.web.exchange.content.Convertion;
@@ -111,9 +110,7 @@ public class TypeResolver {
         }
 
         try {
-            return Optional.of(IntStream.range(0, pathParams.size())
-                .mapToObj(n -> Convertion.convert(pathParams.get(n), parameterTypes[n]))
-                .toList());
+            return Optional.of(Convertion.convertPathParams(pathParams, parameterTypes));
         } catch (Exception _) {
             return Optional.empty();
         }

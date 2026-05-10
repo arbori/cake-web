@@ -2,7 +2,9 @@ package loan.capture;
 
 import java.util.Objects;
 
-public class CustomerRequest {
+import cake.web.exchange.content.BodyContent;
+
+public class CustomerRequest implements BodyContent {
     private String name;
     private Double salary;
     private Integer addressId;
