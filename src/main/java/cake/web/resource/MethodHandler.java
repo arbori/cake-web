@@ -9,14 +9,6 @@ import cake.web.exchange.HttpMethodName;
 import cake.web.exchange.content.Convertion;
 
 /**
- * A utility class responsible for resolving the appropriate method on a resource
- * class to handle an HTTP request based on the HTTP method name and parameter count only.
- * 
- * If multiple methods exist with the same name and same parameter count, ambiguity is
- * detected and an exception is thrown — no type inference or scoring is performed.
- * 
- * The cache key includes the full parameter type names, ensuring that if a resource class
- * changes its method signatures, stale cache entries are not reused.
  */
 public class MethodHandler {
     private MethodHandler() {

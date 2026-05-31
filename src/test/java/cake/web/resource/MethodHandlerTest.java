@@ -159,8 +159,7 @@ class MethodHandlerTest {
             MethodHandler.findHttpMethod(OverloadedResource.class, HttpMethodName.DELETE, List.of("1", "2"))
         );
         
-        assertTrue(exception.getMessage().contains("Ambiguous"));
-        assertTrue(exception.getMessage().contains("delete"));
+        assertTrue(exception.getMessage().contains("Ambiguity call to cake.web.resource.MethodHandlerTest$OverloadedResource.delete. Endpoint overload is not allowed.\ndelete(Short,Integer)\ndelete(Long,Integer)"));
     }
 
     // ==================== NOT FOUND CASES ====================
@@ -172,8 +171,7 @@ class MethodHandlerTest {
             MethodHandler.findHttpMethod(SimpleResource.class, HttpMethodName.DELETE, List.of())
         );
         
-        assertTrue(exception.getMessage().contains("No method named 'delete'"));
-        assertTrue(exception.getMessage().contains("with path parameters"));
+        assertTrue(exception.getMessage().contains("No public non-static method named cake.web.resource.MethodHandlerTest$SimpleResource.delete found."));
     }
 
     @Test
@@ -183,8 +181,7 @@ class MethodHandlerTest {
             MethodHandler.findHttpMethod(SimpleResource.class, HttpMethodName.GET, List.of("p1", "p2"))
         );
         
-        assertTrue(exception.getMessage().contains("No method named 'get'"));
-        assertTrue(exception.getMessage().contains("with path parameters"));
+        assertTrue(exception.getMessage().contains("No public non-static method named cake.web.resource.MethodHandlerTest$SimpleResource.get found."));
     }
 
     @Test
@@ -194,7 +191,7 @@ class MethodHandlerTest {
             MethodHandler.findHttpMethod(EmptyResource.class, HttpMethodName.GET, List.of())
         );
         
-        assertTrue(exception.getMessage().contains("No public non-static method named 'get' found"));
+        assertTrue(exception.getMessage().contains("No public non-static method named cake.web.resource.MethodHandlerTest$EmptyResource.get found."));
     }
 
     // ==================== CASE SENSITIVITY ====================
@@ -283,7 +280,7 @@ class MethodHandlerTest {
             MethodHandler.findHttpMethod(StaticMethodResource.class, HttpMethodName.GET, List.of())
         );
         
-        assertTrue(exception.getMessage().contains("No public non-static method named 'get' found"));
+        assertTrue(exception.getMessage().contains("No public non-static method named cake.web.resource.MethodHandlerTest$StaticMethodResource.get found."));
     }
 
     @Test
