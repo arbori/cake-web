@@ -11,6 +11,7 @@ import cake.web.exception.DefaultExceptionMapper;
 import cake.web.exception.ExceptionMapper;
 import cake.web.exchange.GetRequestExchange;
 import cake.web.exchange.PostRequestExchange;
+import cake.web.exchange.PutRequestExchange;
 
 public class RootServlet extends HttpServlet {
     private static final long serialVersionUID = -7807285398220322910L;
@@ -40,6 +41,21 @@ public class RootServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
             PostRequestExchange exchange = new PostRequestExchange(request);
+            Object result = exchange.call();
+
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.getWriter().println(result);
+        } catch (RuntimeException re) {
+            exceptionMapper.handle(re, response);
+        } catch (Exception e) {
+            exceptionMapper.handle(e, response);
+        }
+    }
+
+    @Override
+    protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            PutRequestExchange exchange = new PutRequestExchange(request);
             Object result = exchange.call();
 
             response.setStatus(HttpServletResponse.SC_OK);
