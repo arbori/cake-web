@@ -3,8 +3,10 @@ package cake.web.resource;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import cake.web.exchange.HttpDataHandle;
 import cake.web.exchange.HttpMethodName;
 import cake.web.exchange.content.Convertion;
 
@@ -25,11 +27,13 @@ public class MethodHandler {
      * @param resourceClass the class of the resource
      * @param pathParams the list of path parameter values from the URL (used only for count and conversion)
      * @param httpMethodName the HTTP method name (e.g., GET, POST)
+     * @param httpMetadataHandle 
+     * @param pathParams the list of path parameter values from the URL (used only for count and conversion)
      * @return a MethodResolution object containing the resolved method and converted arguments
      * @throws NoSuchMethodException if no method is found, or if multiple methods match by name and parameter count
      * @throws IllegalArgumentException if path parameters cannot be converted to the required types
      */
-    public static MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName, List<Object> pathParams) 
+    public static MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName, List<Object> pathParams, HttpDataHandle httpDataHandle) 
             throws NoSuchMethodException, IllegalArgumentException 
     {
         if(resourceClass == null) {
@@ -45,22 +49,41 @@ public class MethodHandler {
         String methodName = httpMethodName.toString().toLowerCase();
         String cacheKey = buildCacheKey(resourceClass, methodName, pathParams);
                 
-        // First, find the unique method by name and parameter count
+        Optional<List<Object>> convertedArgsOptional;
+
+        // Look for the method in the cache.
         Method methodFromCache = methodCache.get(cacheKey);
 
-        MethodResolution methodResolution = null;
-
+        // If method is is the cache, it will be used ...
         if(methodFromCache != null) {
-            List<Object> convertedArgs = Convertion.convertPathParams(pathParams, methodFromCache.getParameterTypes());
+            // ... to convert path parameters to the required method's parameters types.
+            convertedArgsOptional = MethodResolver.createParameterDataList(methodFromCache, pathParams, httpDataHandle);
 
-            methodResolution = new MethodResolution(methodFromCache, convertedArgs);
-        } else {        
-            methodResolution = TypeResolver.methodResolution(resourceClass, httpMethodName, pathParams); // Validate method resolution first (throws if no method or ambiguous)
+            // If the conversion fail, path parameters is not compatible with the parameter's types of the method.
+            if(convertedArgsOptional.isEmpty()) {
+                throw new IllegalArgumentException("Path parameters cannot be converted to the required parameters types of cached method.");
+            }
 
-            methodCache.put(cacheKey, methodResolution.method());
-        } 
-        
-        return methodResolution;
+            // Every thing is ok, return the method and converted arguments.
+            return new MethodResolution(methodFromCache, convertedArgsOptional.get());
+        }
+
+        // So. The method is not in the cache. Then, resuolve the proper method to call.
+        Method method = MethodResolver.methodResolution(resourceClass, httpMethodName, pathParams);
+
+        // Try to convert the path parameters to the required method's parameters types.
+        convertedArgsOptional = MethodResolver.createParameterDataList(method, pathParams, httpDataHandle);
+
+        // If convertion fails, there is no compatibility between path parameters and method parameters.
+        if(convertedArgsOptional.isEmpty()) {
+            throw new IllegalArgumentException("Path parameters cannot be converted to the required method parameters types");
+        }
+
+        // The method was found. Put it in the cache.
+        methodCache.put(cacheKey, method);
+
+        // Everything is ok, return the resolved method.
+        return new MethodResolution(method, convertedArgsOptional.get());
     }
 
     /**
@@ -70,7 +93,7 @@ public class MethodHandler {
      * @param paramCount the number of parameters
      * @return a unique cache key string
      */
-    private static String buildCacheKey(Class<?> resourceClass, String httpMethodName, List<Object> pathParams) {
+    public static String buildCacheKey(Class<?> resourceClass, String httpMethodName, List<Object> pathParams) {
         StringBuilder sb = new StringBuilder();
 
         if(!pathParams.isEmpty()) {
@@ -83,7 +106,7 @@ public class MethodHandler {
         }
 
         return new StringBuilder(resourceClass.getName())
-            .append("#")
+            .append(".")
             .append(httpMethodName)
             .append("(")
             .append(sb.toString())

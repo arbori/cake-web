@@ -28,14 +28,10 @@ import cake.web.resource.MethodResolution;
 abstract class AbstractRequestExchange {
     private static final Map<String, Class<?>> resourceCache = new ConcurrentHashMap<>();
     
-    private final HttpMetadataHandle httpMetadataHandle;
+    private final HttpDataHandle httpDataHandle;
     
     protected final List<String> tokens;
-    protected List<Object> resourceParams;
-    protected Map<String, String[]> queryParameterMap;
-    protected StringBuilder bodyContent;
-    protected Map<String, String> headers = new HashMap<>();
-    protected String authToken;
+    protected List<Object> pathParams;
 
     /**
      * Constructs a BaseRequestExchange with the given request.
@@ -47,8 +43,6 @@ abstract class AbstractRequestExchange {
      * @throws IllegalArgumentException if requestURI or contextPath are null/empty
      */
     AbstractRequestExchange(HttpServletRequest request) throws IOException {
-        httpMetadataHandle = new HttpMetadataHandle(request);
-
         String requestURI = request.getRequestURI(); // Extract the path from the URI
         String contextPath = request.getContextPath(); // Assuming contextPath is part of the path
 
@@ -61,16 +55,10 @@ abstract class AbstractRequestExchange {
             contextPath = "";
         }
 
-        this.tokens = tokenizePath(requestURI, contextPath);
-        this.resourceParams = new ArrayList<>();
-        this.queryParameterMap = request.getParameterMap();
-        this.headers = extractHeaders(request);
-        this.authToken = extractAuthToken(request);
-        this.bodyContent = new StringBuilder();
+        this.httpDataHandle = new HttpDataHandle(request);
 
-        if (request.getReader() != null) {
-            request.getReader().lines().forEach(line -> bodyContent.append(line).append("\n"));
-        }
+        this.tokens = tokenizePath(requestURI, contextPath);
+        this.pathParams = new ArrayList<>();
 
         if (tokens.isEmpty()) {
             throw new IllegalArgumentException("No resource tokens found in the request URI.");
@@ -130,7 +118,7 @@ abstract class AbstractRequestExchange {
         // First we need to find the root resource, which is the first class that can be loaded from the tokens.
         while(tokenIterator.hasNext() && resource == null) {
             token = tokenIterator.next();
-            classFounded = tryLoadClass(fullClassName + "." + capitalize(token));
+            classFounded = tryLoadClass(fullClassName.toString(), capitalize(token));
 
             // If no class found, ...
             if (!classFounded.isPresent()) {
@@ -147,13 +135,13 @@ abstract class AbstractRequestExchange {
         // The resource was founded previously. Then, take the next tokens and try to find child resources or path parameters.
         while(resource != null && tokenIterator.hasNext()) {
             token = tokenIterator.next();
-            classFounded = tryLoadClass(fullClassName + "." + capitalize(token));
+            classFounded = tryLoadClass(fullClassName.toString(), capitalize(token));
 
             // The resource was founded previously.
             // If other class was not found, ...
             if (!classFounded.isPresent()) {
                 // ... this token is a path parameter.
-                resourceParams.add(token);
+                pathParams.add(token);
             }
             // Other resource was founded.
             else {
@@ -164,7 +152,7 @@ abstract class AbstractRequestExchange {
                 Object parentResourceResult = parentResourceGetMethod.call(resource);
 
                 // put parent result as parameter for child resource resolution (if any)
-                resourceParams.add(parentResourceResult);
+                pathParams.add(parentResourceResult);
 
                 // inject parent result into child resource
                 resource = instantiateResource(classFounded.get());
@@ -174,9 +162,6 @@ abstract class AbstractRequestExchange {
         if (resource == null) {
             throw new ClassNotFoundException("No resource found for given URI");
         }
-
-        // Before returning the resource, set the metadata for the resource to be used in method invocation (e.g., for query parameter binding).
-        httpMetadataHandle.setResourceMetaData(resource);
 
         return resource;
     }
@@ -194,9 +179,9 @@ abstract class AbstractRequestExchange {
      */
     private MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName)
             throws NoSuchMethodException, IllegalArgumentException {
-        MethodResolution methodResolution = MethodHandler.findHttpMethod(resourceClass, httpMethodName, resourceParams);
+        MethodResolution methodResolution = MethodHandler.findHttpMethod(resourceClass, httpMethodName, pathParams, httpDataHandle);
             
-        resourceParams.clear();
+        pathParams.clear();
         
         return methodResolution;
     }
@@ -250,7 +235,9 @@ abstract class AbstractRequestExchange {
      * @param fqcn the fully qualified class name
      * @return Optional containing the Class if found, or empty if not found
      */
-    private Optional<Class<?>> tryLoadClass(String fqcn) {
+    private Optional<Class<?>> tryLoadClass(String prefix, String sufix) {
+        String fqcn = (prefix.isEmpty()) ? sufix : prefix + "." + sufix;
+         
         Class<?> classFounded = resourceCache.get(fqcn);
 
         if (classFounded != null) {
@@ -282,38 +269,5 @@ abstract class AbstractRequestExchange {
             return "";
 
         return Character.toUpperCase(s.charAt(0)) + s.substring(1);
-    }
-
-    /**
-     * Extracts headers from the HttpServletRequest into a Map.
-     * 
-     * @param request the HttpServletRequest object
-     * @return a Map of header names to values
-     */
-    private Map<String, String> extractHeaders(HttpServletRequest request) {
-        Map<String, String> result = new HashMap<>();
-        Enumeration<String> names = request.getHeaderNames();
-        
-        while (names != null && names.hasMoreElements()) {
-            String name = names.nextElement();
-            result.put(name, request.getHeader(name));
-        }
-        
-        return result;
-    }
-
-    /**
-     * Extracts the Authorization header as a Bearer token.
-     * @param request the HttpServletRequest object
-     * @return the extracted token, or null if not present
-     */
-    private String extractAuthToken(HttpServletRequest request) {
-        String auth = request.getHeader("Authorization");
-        
-        if (auth != null && auth.startsWith("Bearer ")) {
-            return auth.substring(7);
-        }
-        
-        return auth;
     }
 }

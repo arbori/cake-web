@@ -249,43 +249,6 @@ class ConvertionTest {
         assertEquals("string", Convertion.kindOfParamType(""));
     }
 
-    // ==================== convertPathParams TESTS ====================
-
-    @Test
-    void shouldConvertPathParams() {
-        List<Object> pathParams = List.of("123", "John", "true");
-        Class<?>[] paramTypes = {Integer.class, String.class, Boolean.class};
-        
-        List<Object> result = Convertion.convertPathParams(pathParams, paramTypes);
-        
-        assertEquals(3, result.size());
-        assertEquals(123, result.get(0));
-        assertEquals("John", result.get(1));
-        assertTrue((Boolean) result.get(2));
-    }
-
-    @Test
-    void shouldThrowExceptionWhenPathParamsSizeExceedsParamTypes() {
-        List<Object> pathParams = List.of("123", "456");
-        Class<?>[] paramTypes = {Integer.class};
-        
-        // convertPathParams iterates over pathParams.size()
-        // but parameterTypes[i] will throw ArrayIndexOutOfBoundsException
-        assertThrows(ArrayIndexOutOfBoundsException.class, 
-            () -> Convertion.convertPathParams(pathParams, paramTypes));
-    }
-
-    @Test
-    void shouldThrowExceptionWhenParamTypesIsPrimitive() {
-        List<Object> pathParams = List.of("123", "456");
-        Class<?>[] paramTypes = {int.class, long.class};
-        
-        // convertPathParams iterates over pathParams.size()
-        // but parameterTypes[i] will throw ArrayIndexOutOfBoundsException
-        assertThrows(PrimitiveNotAllowedException.class, 
-            () -> Convertion.convertPathParams(pathParams, paramTypes));
-    }
-
     // ==================== EDGE CASES ====================
 
     @Test

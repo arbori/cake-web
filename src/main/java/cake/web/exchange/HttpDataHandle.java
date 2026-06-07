@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -22,19 +23,16 @@ import cake.web.exchange.content.HeaderContent;
 import cake.web.exchange.content.ResourceFilter;
 
 /**
- * Base class for all resources (controllers).
- * Provides access to HTTP request data like body, headers, and params.
  */
-public class HttpMetadataHandle {
-    private HttpServletRequest request;
-
-    private Map<String, String[]> parameterMap;
-    
-    private Map<String, String> headers;
-
-    private JsonNode rootNode;
-
+public class HttpDataHandle {
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private final HttpServletRequest request;
+    private final Map<String, String[]> queryParameterMap;
+    private final Map<String, String> headers;
+    private final String authToken;
+
+    private final JsonNode rootNode;
 
     /**
      * Constructs a RequestHandle by extracting relevant data from the
@@ -43,120 +41,14 @@ public class HttpMetadataHandle {
      * @param request the HttpServletRequest object containing the request data
      * @throws IOException if an I/O error occurs while reading the request body
      */
-    public HttpMetadataHandle(HttpServletRequest request) throws IOException {
+    public HttpDataHandle(HttpServletRequest request) throws IOException {
         this.request = request;
 
         // Initializa containers.
-        this.parameterMap = new HashMap<>(request.getParameterMap());
+        this.queryParameterMap = request.getParameterMap();
         this.headers = extractHeaders();
-
-        // Get the body lines and concatenate them into a single string
-        String bodyContent = request.getReader() != null ? 
-            request.getReader().lines().reduce("", (acc, line) -> acc + line + "\n").trim() : 
-            null;
-
-        // If the body content is not empty, parse it as JSON and store in rootNode
-        if (bodyContent != null && !bodyContent.isEmpty()) {
-            this.rootNode = MAPPER.readTree(bodyContent);
-        } else {
-            this.rootNode = null;
-        }
-    }
-
-    /**
-     * Inspects the resource object for fields of type BodyContent and attempts to set them
-     * using the JSON body content. It looks for setter methods corresponding to the field names
-     * and invokes them with the converted body content.
-     * 
-     * @param resource the resource object to populate with body content
-     */
-    public void setResourceMetaData(Object resource) {
-        List<Field> fields = Arrays.asList(resource.getClass().getDeclaredFields()).stream()
-            .filter(this::isMetadataHandled)
-            .toList();
-
-        for(Field field: fields) {
-            Method setMethod = Arrays.asList(resource.getClass().getMethods())
-                .stream()
-                .filter(m -> m.getName().equalsIgnoreCase("set" + field.getName().toLowerCase()) && 
-                    m.getParameterCount() == 1 &&
-                    java.lang.reflect.Modifier.isPublic(m.getModifiers()) &&
-                    !java.lang.reflect.Modifier.isStatic(m.getModifiers()))
-                .findFirst()
-                .orElse(null);
-
-            if(setMethod == null) {
-                continue;
-            }
-
-            if(Arrays.asList(field.getType().getInterfaces()).contains(BodyContent.class)) {
-                setBodyContent(resource, setMethod, field);
-            } else if(Arrays.asList(field.getType().getInterfaces()).contains(ResourceFilter.class)) {
-                setResourceFilter(resource, setMethod, field);
-            } else if(Arrays.asList(field.getType().getInterfaces()).contains(HeaderContent.class)) {
-                setHeaderContent(resource, setMethod, field);
-            }
-        }
-    }
-
-    /**
-     * Checks if the field is of a type that should be handled as metadata.
-     * @param field the field to check
-     * @return true if the field is of a metadata type, false otherwise
-     */
-    private boolean isMetadataHandled(Field field) {
-        return Arrays.asList(field.getType().getInterfaces()).contains(BodyContent.class) || 
-            Arrays.asList(field.getType().getInterfaces()).contains(ResourceFilter.class) ||
-            Arrays.asList(field.getType().getInterfaces()).contains(HeaderContent.class);
-    }
-
-    /**
-     * Sets the header content for a field of type HeaderContent by extracting values from request headers.
-     * It looks for a setter method corresponding to the field name and invokes it with the converted header content.
-     * 
-     * @param resource the resource object containing the field
-     * @param setMethod the setter method to invoke for setting the header content
-     * @param field the field to set
-     */
-    private void setHeaderContent(Object resource, Method setMethod, Field field) {
-        try {
-            setMethod.invoke(resource, this.buildFromHeader(field.getType()));
-        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new FrameworkException(
-                    "Failed to set header content on resource " + resource.getClass().getSimpleName() + " via setter: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Sets the body content for a field of type BodyContent by parsing the JSON body content.
-     * It looks for a setter method corresponding to the field name and invokes it with the converted body content.
-     * 
-     * @param resource the resource object containing the field
-     * @param setMethod the setter method to invoke for setting the body content
-     * @param field the field to set
-     */
-    private void setBodyContent(Object resource, Method setMethod, Field field) {
-        try {
-            setMethod.invoke(resource, buildFromBody(field.getType()));
-        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | IOException e) {
-            throw new FrameworkException(
-                    "Failed to set body content on resource " + resource.getClass().getSimpleName() + " via setter: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Sets the resource filter for a field of type ResourceFilter.
-     * @param resource the resource object containing the field
-     * @param setMethod the setter method to invoke for setting the resource filter
-     * @param field the field to set
-     */
-    private void setResourceFilter(Object resource, Method setMethod, Field field) {
-        try {
-            setMethod.invoke(resource, this.buildFromQueryParameter(field.getType()));
-        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new FrameworkException(
-                    "Failed to set resource filter on resource " + resource.getClass().getSimpleName() + " via setter: " + e.getMessage(), e);
-        }
+        this.rootNode = extractBodyContent();
+        this.authToken = extractAuthToken();
     }
 
     /**
@@ -241,7 +133,7 @@ public class HttpMetadataHandle {
         }
 
         for (var field : targetType.getDeclaredFields()) {
-            String[] queryParam = parameterMap.get(field.getName());
+            String[] queryParam = queryParameterMap.get(field.getName());
 
             if (queryParam != null && queryParam[0] != null) {
                 String value = !queryParam[0].isEmpty() ? queryParam[0] : null;
@@ -251,6 +143,15 @@ public class HttpMetadataHandle {
         }
 
         return object;
+    }
+
+    /**
+     * Get the authorization token.
+     * 
+     * @return The authorization token.
+     */
+    public String getAuthToken() {
+        return this.authToken;
     }
 
     /**
@@ -272,18 +173,38 @@ public class HttpMetadataHandle {
     }
 
     /**
-     * Extracts the Authorization header as a Bearer token.
+     * Read the body content and convert it to a JSON node.
      * 
+     * @param request the HttpServletRequest object
+     * @return a JSON node representing the body content
+     * @throws IOException if an I/O error occurs while reading the request body
+     */
+    private JsonNode extractBodyContent() throws IOException {
+        // Get the body lines and concatenate them into a single string
+        String bodyContent = request.getReader() != null ? 
+            request.getReader().lines().reduce("", (acc, line) -> acc + line + "\n").trim() : 
+            null;
+
+        // If the body content is not empty, parse it as JSON and store in rootNode
+        if (bodyContent != null && !bodyContent.isEmpty()) {
+            return MAPPER.readTree(bodyContent);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Extracts the Authorization header as a Bearer token.
      * @param request the HttpServletRequest object
      * @return the extracted token, or null if not present
      */
-    protected String extractAuthToken() {
+    private String extractAuthToken() {
         String auth = request.getHeader("Authorization");
-
+        
         if (auth != null && auth.startsWith("Bearer ")) {
             return auth.substring(7);
         }
-
+        
         return auth;
     }
 
@@ -298,7 +219,7 @@ public class HttpMetadataHandle {
      * @param instance the object instance to set the attribute on
      */
     private void trySetAttributes(String name, Object value, Class<?> clazz, Object instance) {
-        String setterName = "set" + name;
+        String setterName = "set" + name.substring(0, 1).toUpperCase() + name.substring(1);
 
         // try setter methods first
         try {

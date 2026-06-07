@@ -1,10 +1,8 @@
 package cake.web.exchange.content;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-
-import cake.web.exception.PrimitiveNotAllowedException;
 
 /**
  * Utility class for converting string values to various target types based on 
@@ -45,6 +43,26 @@ public class Convertion {
     private static final String ZONED_DATE_TIME_REGEX = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)(\\[.*\\])?$";
     private static final String UUID_REGEX = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";
 
+    private static List<String> basicConversebleType = Arrays.asList(
+        "java.lang.Boolean",
+        "java.util.UUID",
+        "java.lang.String",
+        "java.lang.Byte",
+        "java.lang.Short",
+        "java.lang.Integer",
+        "java.lang.Long",
+        "java.math.BigInteger",
+        "java.lang.Float",
+        "java.lang.Double",
+        "java.math.BigDecimal",
+        "java.time.LocalTime",
+        "java.time.LocalDate",
+        "java.time.LocalDateTime",
+        "java.time.OffsetDateTime",
+        "java.time.OffsetTime",
+        "java.time.ZonedDateTime"
+    );
+
     /**
      * Converts the given object to the specified target type. The conversion logic is based on the format of the input value and the target type.
      * Supported conversions include:
@@ -56,6 +74,7 @@ public class Convertion {
      *   <li>String and Object types (returns the string value)</li>
      * </ul>
      *
+     * @param httpMetadataHandle 
      * @param object the input object to convert (typically a string representation of a path parameter)
      * @param targetType the class of the target type to convert to
      * @return the converted object of the target type
@@ -172,32 +191,6 @@ public class Convertion {
         }
     }
 
-    /** 
-     * Converts a list of path parameter values to the specified target types based on their positions.
-     * @param pathParams the list of path parameter values (as objects)
-     * @param parameterTypes the array of target parameter types corresponding to each path parameter or the parent resource result.
-     * @return a list of converted objects corresponding to each path parameter and/or the parent resource result.
-     * @throws ArrayIndexOutOfBoundsException if the number of path parameters is different from the number of parameter types.
-     * @throws PrimitiveNotAllowedException if a parameter type is a primitive type.
-     */
-    public static List<Object> convertPathParams(List<Object> pathParams, Class<?>[] parameterTypes) {
-        if(pathParams.size() != parameterTypes.length) {
-            throw new ArrayIndexOutOfBoundsException("The number of path parameters (" + pathParams.size() + ") is different of the number of parameter types (" + parameterTypes.length + ").");
-        }
-
-        List<Object> result = new ArrayList<>(parameterTypes.length);
-
-        for(int i = 0; i < parameterTypes.length; i++) {
-            if(parameterTypes[i].isPrimitive()) {
-                throw new PrimitiveNotAllowedException("Parameter with type " + parameterTypes[i].getName() + " is not allowed");
-            }
-
-            result.add(convert(pathParams.get(i), parameterTypes[i]));
-        }
-
-        return result;
-    }
-
     /**
      * Determines the type of the given parameter value based on its format.
      * @param value the parameter value as a string
@@ -243,5 +236,9 @@ public class Convertion {
         }
 
         return "string";
+    }
+
+    public static boolean isBasicConversebleType(Class<?> type) {
+        return basicConversebleType.contains(type.getName());
     }
 }

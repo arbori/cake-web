@@ -59,6 +59,62 @@ class GetRequestExchangeTest {
         customers = loanService.getAllCustomers();
     }
 
+    //---------------------------------------------------------------------//
+    @Test
+    void getRequestExchangeRootPackage() throws IOException {
+        String messageExpected = "The Bank Loan System v1.0";
+
+        when(request.getRequestURI()).thenReturn("thebank.com/about");
+        when(request.getContextPath()).thenReturn("thebank.com/");
+
+        GetRequestExchange getRequestExchange = new GetRequestExchange(request);
+
+        Object result = null;
+        
+        try {
+            result = getRequestExchange.call();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+
+        assertTrue(result instanceof String, "Result should be a String");
+        assertEquals(messageExpected, result, "The return of get method is different than expected");
+    }
+
+    @Test
+    void getRequestExchangeWithQueryParameters() throws IOException {
+
+        when(request.getRequestURI()).thenReturn("thebank.com/loan/capture/address");
+        when(request.getContextPath()).thenReturn("thebank.com/");
+        when(request.getParameterMap()).thenReturn(
+            Map.of(
+                "zipcode", new String[] { "654.345" },
+                "street", new String[] { "Rua dos Afogados" },
+                "city", new String[] { "São Paulo" },
+                "state", new String[] { "São Paulo" }
+            )
+        );
+
+        GetRequestExchange getRequestExchange = new GetRequestExchange(request);
+
+        Object result = null;
+
+        try {
+            result = getRequestExchange.call();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+
+        assertTrue(result instanceof AddressResponse, "Result should be a AddressResponse");
+        
+        AddressResponse address = (AddressResponse) result;
+
+        assertEquals(request.getParameterMap().get("zipcode")[0], address.getZipcode(), "The zipcode is different");
+        assertEquals(request.getParameterMap().get("street")[0], address.getStreet(), "The street is different");
+        assertEquals(request.getParameterMap().get("city")[0], address.getCity(), "The city is different");
+        assertEquals(request.getParameterMap().get("state")[0], address.getState(), "The state is different");
+    }
+
     @Test
     void getRequestExchangeById() throws IOException {
         CustomerResponse customer = loanService.getCustomer(customers.get(0).getId())
