@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.thebank.loan.entity.AddressEntity;
 import com.thebank.loan.entity.CustomerEntity;
 import com.thebank.loan.repository.CustomerRepository;
 import com.thebank.loan.repository.Repository;

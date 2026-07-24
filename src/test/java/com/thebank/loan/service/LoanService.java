@@ -4,8 +4,6 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 import com.thebank.loan.entity.AddressEntity;
 import com.thebank.loan.entity.CustomerEntity;
 import com.thebank.loan.entity.InstallmentEntity;
@@ -313,7 +311,7 @@ public class LoanService {
     public Optional<ProposalResponse> getProposal(Integer customerId,Integer proposalId) {
         return proposalRepository.findById(proposalId).map(loan -> new ProposalResponse()
                 .setId(loan.getId())
-                .setCustomerId(loan.getCustomerId())
+                .setCustomerId(customerId)
                 .setAmount(loan.getAmount())
                 .setNumberOfInstallments(loan.getNumberOfInstallments())
                 .setMonthlyInterestRate(loan.getMonthlyInterestRate())

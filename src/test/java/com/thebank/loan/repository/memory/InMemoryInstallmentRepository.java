@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import com.thebank.loan.entity.CustomerEntity;
 import com.thebank.loan.entity.InstallmentEntity;
 import com.thebank.loan.entity.ProposalEntity;
 import com.thebank.loan.repository.InstallmentRepository;
