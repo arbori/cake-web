@@ -13,6 +13,6 @@ public class PatchRequestExchange extends AbstractRequestExchange {
 
     @Override
     public Object call() throws IllegalArgumentException, NoSuchMethodException, ClassNotFoundException, AmbiguityException {
-        return call(HttpMethodName.CONNECT);
+        return call(HttpMethodName.PATCH);
     }
 }
