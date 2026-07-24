@@ -9,11 +9,11 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import cake.web.exception.FrameworkException;
 import cake.web.exchange.content.Convertion;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  */
