@@ -58,10 +58,18 @@ public class InMemoryAddressRepository implements Repository<AddressEntity, Inte
     }
 
     @Override
-    public void deleteById(Integer id) {
+    public Optional<AddressEntity> deleteById(Integer id) {
         if(id != null) {
-            store.remove(id);
+            AddressEntity deleted = store.get(id);
+
+            if(deleted != null) {
+                store.remove(deleted.getId());
+
+                return Optional.of(deleted);
+            }
         }
+
+        return Optional.empty();
     }
 
     @Override

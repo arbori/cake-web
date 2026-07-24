@@ -5,12 +5,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.*;
-import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
-
-import cake.web.exception.PrimitiveNotAllowedException;
 
 class ConvertionTest {
 

@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import cake.web.exception.AmbiguityException;
 import cake.web.exception.PrimitiveNotAllowedException;
 import cake.web.exchange.HttpDataHandle;
 import cake.web.exchange.HttpMethodName;
@@ -38,18 +39,22 @@ public class MethodResolver {
      * @return The resolution of the method to call and its converted arguments
      * @throws NoSuchMethodException if no compatible method is found or if the call is ambiguous
      */
-    public static Method methodResolution(Class<?> resourceClass, HttpMethodName httpMethodName, List<Object> pathParams) throws NoSuchMethodException {
+    public static Method methodResolution(Class<?> resourceClass, HttpMethodName httpMethodName, List<Object> pathParams) throws NoSuchMethodException, AmbiguityException {
         if(resourceClass == null || httpMethodName == null || pathParams == null) {
             throw new IllegalArgumentException("Arguments cannot be null");
         }
-        
+ 
         // Private constructor do not allowed create an object of the resource class.
+        boolean isConstructorPublic;
+
         try {
-            if (!Modifier.isPublic(resourceClass.getConstructor().getModifiers())) {
-                throw new NoSuchMethodException("Resource class: " + resourceClass.getName() + " has no public no-arg constructor.");
-            }
+            isConstructorPublic = Modifier.isPublic(resourceClass.getConstructor().getModifiers());
         } catch (NoSuchMethodException _) {
             throw new NoSuchMethodException("Failed to get the constructor of resource class: " + resourceClass.getName() + ".\nEnsure it has a public no-arg constructor.");
+        }
+
+        if (!isConstructorPublic) {
+            throw new NoSuchMethodException("Resource class: " + resourceClass.getName() + " has no public no-arg constructor.");
         }
 
         // Search for public and non-static http method in the resource class.
@@ -71,7 +76,7 @@ public class MethodResolver {
 
         // Only one method with the same number of path parameters is allowed. Otherwise, it is ambiguous.
         if (filteredMethods.size() > 1) {
-            throw new NoSuchMethodException(
+            throw new AmbiguityException(
                 "Ambiguity call to " + resourceClass.getName() + "." + httpMethodName +  
                 ". Endpoint overload is not allowed.\n" +
                 filteredMethods.stream()
@@ -110,8 +115,18 @@ public class MethodResolver {
         // Count what kind of parameters are already found
         for(var paramIterator = parameterTypes.iterator(); paramIterator.hasNext(); ) {
             Class<?> paramType = paramIterator.next();
+            
+            // Parameter type should correspond to a path parameter type if:
+            //     1. The parameter type is a converseble type for the framework or;
+            //     2. There is path parameter(s) and;
+            //     3. All path parameters has not been checked and;
+            //     4. The types are equals.
+            boolean shouldCorrespondType = Convertion.isBasicConversebleType(paramType) ||
+                !pathParams.isEmpty() &&
+                ((pathParams.size() - numberOfPathParam) < pathParams.size() && 
+                paramType.equals(pathParams.get(pathParams.size() - numberOfPathParam).getClass()));
 
-            if(Convertion.isBasicConversebleType(paramType)) {
+            if(shouldCorrespondType) {
                 numberOfPathParam--;
             } else if(BodyContent.class.isAssignableFrom(paramType)) {
                 numberOfBodyContent++;
@@ -144,7 +159,7 @@ public class MethodResolver {
 
         Class<?>[] parameterTypes = method.getParameterTypes();
 
-        if (pathParams.size() != parameterTypes.length) {
+        if (pathParams.size() > parameterTypes.length) {
             return Optional.empty();
         }
 
@@ -190,6 +205,9 @@ public class MethodResolver {
             }
             else if(Convertion.isBasicConversebleType(parameterTypes[i])) {
                 result.add(Convertion.convert(pathParams.get(i), parameterTypes[i]));
+            }
+            else if(parameterTypes[i].isAssignableFrom(pathParams.get(i).getClass())) {
+                result.add(pathParams.get(i));
             }
         }
 

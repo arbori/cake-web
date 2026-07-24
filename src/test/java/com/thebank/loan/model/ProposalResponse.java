@@ -1,4 +1,4 @@
-package loan.capture;
+package com.thebank.loan.model;
 
 import java.time.LocalDate;
 import java.util.ArrayList;

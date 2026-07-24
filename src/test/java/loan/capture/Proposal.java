@@ -2,6 +2,8 @@ package loan.capture;
 
 import java.util.Optional;
 
+import com.thebank.loan.model.CustomerResponse;
+import com.thebank.loan.model.ProposalResponse;
 import com.thebank.loan.service.LoanService;
 
 import cake.web.exception.ParameterNotFoundException;

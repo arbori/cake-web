@@ -14,7 +14,7 @@ public interface InstallmentRepository {
 
     List<InstallmentEntity> findAll();
 
-    void deleteById(Integer id);
+    Optional<InstallmentEntity> deleteById(Integer id);
 
     boolean existsById(Integer id);
 

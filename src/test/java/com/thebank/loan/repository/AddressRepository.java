@@ -15,7 +15,7 @@ public interface AddressRepository {
 
     List<AddressEntity> findAll();
 
-    void deleteById(Integer id);
+    Optional<AddressEntity> deleteById(Integer id);
 
     boolean existsById(Integer id);
 

@@ -1,32 +1,31 @@
-package loan.capture;
+package com.thebank.loan.model;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
 
 public class InstallmentResponse {
-    private Long id;
-    private Long loanRequestId;
+    private Integer id;
+    private Integer loanRequestId;
     private Integer installmentNumber;
     private LocalDate dueDate;
-    private BigDecimal amount;
+    private Double amount;
     private LocalDate paidDate;
     private Boolean isLate;
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
-    public InstallmentResponse setId(Long id) {
+    public InstallmentResponse setId(Integer id) {
         this.id = id;
         return this;
     }
     
-    public Long getLoanRequestId() {
+    public Integer getLoanRequestId() {
         return loanRequestId;
     }
 
-    public InstallmentResponse setLoanRequestId(Long loanRequestId) {
+    public InstallmentResponse setLoanRequestId(Integer loanRequestId) {
         this.loanRequestId = loanRequestId;
         return this;
     }
@@ -49,11 +48,11 @@ public class InstallmentResponse {
         return this;
     }
 
-    public BigDecimal getAmount() {
+    public Double getAmount() {
         return amount;
     }
 
-    public InstallmentResponse setAmount(BigDecimal amount) {
+    public InstallmentResponse setAmount(Double amount) {
         this.amount = amount;
         return this;
     }

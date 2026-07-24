@@ -1,6 +1,6 @@
-package com.thebank.loan.entity;
+package com.thebank.loan.model;
 
-public class AddressEntity {
+public class AddressResponse {
     private Integer id;
     private String zipcode;
     private String street;
@@ -10,43 +10,42 @@ public class AddressEntity {
     public Integer getId() {
         return id;
     }
-    public AddressEntity setId(Integer id) {
+    public AddressResponse setId(Integer id) {
         this.id = id;
         return this;
     }
     public String getZipcode() {
         return zipcode;
     }
-    public AddressEntity setZipcode(String zipcode) {
+    public AddressResponse setZipcode(String zipcode) {
         this.zipcode = zipcode;
         return this;
-
     }
     public String getStreet() {
         return street;
     }
-    public AddressEntity setStreet(String street) {
+    public AddressResponse setStreet(String street) {
         this.street = street;
         return this;
     }
     public String getCity() {
         return city;
     }
-    public AddressEntity setCity(String city) {
+    public AddressResponse setCity(String city) {
         this.city = city;
         return this;
     }
     public String getState() {
         return state;
     }
-    public AddressEntity setState(String state) {
+    public AddressResponse setState(String state) {
         this.state = state;
         return this;
     }
 
     @Override
     public String toString() {
-        return "{'AddressEntity': {'id': " + id + ", 'zipcode': '" + zipcode + "', 'street': '" + street + "', 'city': '" + city + "', 'state': '" + state + "'}}";
+        return "{'AddressResponse': {'id': " + id + ", 'zipcode': '" + zipcode + "', 'street': '" + street + "', 'city': '" + city + "', 'state': '" + state + "'}}";
     }
 
     @Override
@@ -69,7 +68,7 @@ public class AddressEntity {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        AddressEntity other = (AddressEntity) obj;
+        AddressResponse other = (AddressResponse) obj;
         if (id == null) {
             if (other.id != null)
                 return false;

@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.thebank.loan.entity.InstallmentEntity;
 import com.thebank.loan.entity.ProposalEntity;
 import com.thebank.loan.entity.ProposalStatus;
 import com.thebank.loan.repository.ProposalRepository;
@@ -52,6 +53,13 @@ public class InMemoryProposalRepository implements Repository<ProposalEntity, In
     }
 
     @Override
+    public List<ProposalEntity> findByCustomerId(Integer customerId) {
+        return store.values().stream()
+            .filter(proposal -> proposal.getCustomerId().equals(customerId))
+            .toList();
+    }
+
+    @Override
     public Optional<ProposalEntity> findByIdAndCustomerId(Integer customerId, Integer proposalId) {
         return Optional.ofNullable(store.values().stream()
                 .filter(proposal -> proposal.getCustomerId().equals(customerId) && proposal.getId().equals(proposalId))
@@ -65,8 +73,18 @@ public class InMemoryProposalRepository implements Repository<ProposalEntity, In
     }
 
     @Override
-    public void deleteById(Integer id) {
-        store.remove(id);
+    public Optional<ProposalEntity> deleteById(Integer id) {
+        if(id != null) {
+            ProposalEntity deleted = store.get(id);
+
+            if(deleted != null) {
+                store.remove(deleted.getId());
+
+                return Optional.of(deleted);
+            }
+        }
+
+        return Optional.empty();
     }
 
     @Override

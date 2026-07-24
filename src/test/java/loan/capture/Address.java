@@ -1,12 +1,17 @@
 package loan.capture;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
-import cake.web.exchange.content.QueryParamContent;
+import com.thebank.loan.model.AddressQuery;
+import com.thebank.loan.model.AddressRequest;
+import com.thebank.loan.model.AddressResponse;
+import com.thebank.loan.service.LoanService;
 
 public class Address {
-    public static record AddressQuery(String zipcode, String street, String city, String state) implements QueryParamContent {}
+    private LoanService loanService = new LoanService();
+
+    public Address() { /* Not necessary any code here */ }
 
     /**
      * GET endpoint simulation.
@@ -17,12 +22,9 @@ public class Address {
      * @return The list that simulate an answare for the query.
      */
     public AddressResponse get(Integer id) {
-        return new AddressResponse()
-            .setId(id)
-            .setZipcode("654.345")
-            .setStreet("Rua dos Afogados")
-            .setCity("São Paulo")
-            .setState("São Paulo");
+        Optional<AddressResponse> addressOptional = loanService.getAddress(id);
+
+        return addressOptional.orElse(null);
     }
 
     /**
@@ -34,37 +36,38 @@ public class Address {
      * @return The list that simulate an answare for the query.
      */
     public List<AddressResponse> get(AddressQuery addressQuery) {
-        return Arrays.asList(
-            new AddressResponse()
-            .setId(123)
-            .setZipcode(addressQuery.zipcode())
-            .setStreet(addressQuery.street())
-            .setCity(addressQuery.city())
-            .setState(addressQuery.state()),
-
-            new AddressResponse()
-            .setId(321)
-            .setZipcode(addressQuery.zipcode())
-            .setStreet(addressQuery.street())
-            .setCity(addressQuery.city())
-            .setState(addressQuery.state()
-        ));
+        return loanService.getFilteredAddressesList(addressQuery);
     }
 
     /**
      * POST endpoint simulation
-     * The framework must identify the intention of update the addres with gived id using the data in addressRequest.
+     * The framework must identify the intention of create a new addres with gived data in addressRequest.
      *
-     * @param id Identificatio simulation
      * @param addressRequest Data to updata simulation
-     * @return
+     * @return The address response with data saved in server
      */
-    public AddressResponse post(Integer id, AddressQuery addressQuery) {
-        return new AddressResponse()
-            .setId(id)
-            .setZipcode(addressQuery.zipcode())
-            .setStreet(addressQuery.street())
-            .setCity(addressQuery.city())
-            .setState(addressQuery.state());
+    public AddressResponse post(AddressRequest addressRequest) {
+        return loanService.createAddress(addressRequest.getZipcode(), addressRequest.getStreet(), addressRequest.getCity(), addressRequest.getState());
+    }
+
+    public Optional<AddressResponse> put(Integer addressId, AddressRequest addressRequest) {
+        Optional<AddressResponse> retrieved = loanService.getAddress(addressId);
+
+        if(retrieved.isEmpty()) {
+            return Optional.empty();
+        }
+
+        AddressResponse response = retrieved.get();
+
+        response.setZipcode(addressRequest.getZipcode());
+        response.setStreet(addressRequest.getStreet());
+        response.setCity(addressRequest.getCity());
+        response.setState(addressRequest.getState());
+
+        return Optional.of(response);
+    }
+
+    public Optional<AddressResponse> delete(Integer id) {
+        return loanService.deleteAddress(id);
     }
 }

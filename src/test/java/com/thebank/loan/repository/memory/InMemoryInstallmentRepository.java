@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import com.thebank.loan.entity.CustomerEntity;
 import com.thebank.loan.entity.InstallmentEntity;
 import com.thebank.loan.entity.ProposalEntity;
 import com.thebank.loan.repository.InstallmentRepository;
@@ -51,8 +52,18 @@ public class InMemoryInstallmentRepository implements Repository<InstallmentEnti
     }
 
     @Override
-    public void deleteById(Integer id) {
-        store.remove(id);
+    public Optional<InstallmentEntity> deleteById(Integer id) {
+        if(id != null) {
+            InstallmentEntity deleted = store.get(id);
+
+            if(deleted != null) {
+                store.remove(deleted.getId());
+
+                return Optional.of(deleted);
+            }
+        }
+
+        return Optional.empty();
     }
 
     @Override

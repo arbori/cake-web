@@ -1,4 +1,4 @@
-package loan.capture;
+package com.thebank.loan.model;
 
 import java.util.Objects;
 
@@ -7,7 +7,7 @@ import cake.web.exchange.content.BodyContent;
 public class CustomerRequest implements BodyContent {
     private String name;
     private Double salary;
-    private Integer addressId;
+    private AddressRequest addressRequest;
 
     public String getName() {
         return name;
@@ -27,23 +27,23 @@ public class CustomerRequest implements BodyContent {
         return this;
     }
 
-    public Integer getAddressId() {
-        return addressId;
+    public AddressRequest getAddressRequest() {
+        return addressRequest;
     }
 
-    public CustomerRequest setAddressId(Integer addressId) {
-        this.addressId = addressId;
+    public CustomerRequest setAddressRequest(AddressRequest addressRequest) {
+        this.addressRequest = addressRequest;
         return this;
     }
 
     @Override
     public String toString() {
-        return "'CustomerData': {'name'='" + name + "', 'salary'=" + salary + ", 'addressId'=" + addressId +"}";
+        return "\"CustomerData\": {\"name\"=\"" + name + "\", \"salary\"=" + salary + ", \"address\"=" + addressRequest +"}";
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, salary, addressId);
+        return Objects.hash(name, salary, addressRequest);
     }
 
     @Override

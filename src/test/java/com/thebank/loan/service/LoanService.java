@@ -4,12 +4,19 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.thebank.loan.entity.AddressEntity;
 import com.thebank.loan.entity.CustomerEntity;
 import com.thebank.loan.entity.InstallmentEntity;
 import com.thebank.loan.entity.ProposalEntity;
 import com.thebank.loan.entity.RiskAssessmentEntity;
+import com.thebank.loan.entity.mapper.AddressMapper;
+import com.thebank.loan.entity.mapper.ProposalMapper;
+import com.thebank.loan.model.AddressQuery;
+import com.thebank.loan.model.AddressResponse;
+import com.thebank.loan.model.CustomerResponse;
+import com.thebank.loan.model.ProposalResponse;
 import com.thebank.loan.repository.AddressRepository;
 import com.thebank.loan.repository.CustomerRepository;
 import com.thebank.loan.repository.InstallmentRepository;
@@ -19,51 +26,66 @@ import com.thebank.loan.repository.memory.InMemoryCustomerRepository;
 import com.thebank.loan.repository.memory.InMemoryInstallmentRepository;
 import com.thebank.loan.repository.memory.InMemoryProposalRepository;
 
-import loan.capture.AddressResponse;
-import loan.capture.CustomerResponse;
-import loan.capture.ProposalResponse;
-
 public class LoanService {
     private final CustomerRepository customerRepository = InMemoryCustomerRepository.instance();
     private final AddressRepository addressRepository = InMemoryAddressRepository.instance();
-    private final ProposalRepository loanRequestRepository = InMemoryProposalRepository.instance();
+    private final ProposalRepository proposalRepository = InMemoryProposalRepository.instance();
     private final InstallmentRepository installmentRepository = InMemoryInstallmentRepository.instance();
 
     private final RiskAnalysisService riskAnalysisService = new RiskAnalysisService();
 
     // CRUD Customer
-    public CustomerResponse createCustomer(String name, Double salary, Integer addressId) {
+    public CustomerResponse createCustomer(String name, Double salary, AddressResponse addressResponse) {
         CustomerEntity savedCustomer = customerRepository.save(new CustomerEntity()
             .setName(name)
             .setSalary(salary)
-            .setAddressId(addressId));
+            .setAddressId(addressResponse.getId()));
 
         return new CustomerResponse()
                 .setId(savedCustomer.getId())
                 .setName(savedCustomer.getName())
                 .setSalary(savedCustomer.getSalary())
-                .setAddressId(savedCustomer.getAddressId());
+                .setAddressResponse(addressResponse);
     }
 
     public Optional<CustomerResponse> getCustomer(Integer id) {
-        CustomerResponse response = new CustomerResponse();
+        Optional<CustomerEntity> customerEntityOptional = customerRepository.findById(id);
 
-        customerRepository.findById(id).ifPresent(customer -> 
-            response.setId(customer.getId())
-                .setName(customer.getName())
-                .setSalary(customer.getSalary())
-                .setAddressId(customer.getAddressId()));
+        if(customerEntityOptional.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        CustomerEntity customerEntity = customerEntityOptional.get();
+        
+        Optional<AddressEntity> addressEntityOptional = addressRepository.findById(customerEntity.getAddressId());
 
-        return Optional.of(response);
+        if(addressEntityOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        AddressResponse addressResponse = AddressMapper.toAddressResponse(addressEntityOptional.get());
+
+        List<ProposalEntity> proposalEntityList = proposalRepository.findByCustomerId(customerEntity.getId());
+
+        List<ProposalResponse> proposalResponseList = proposalEntityList.stream()
+            .map(ProposalMapper::toProposalResponse)
+            .toList();
+
+        return Optional.of(new CustomerResponse()
+            .setId(customerEntity.getId())
+            .setName(customerEntity.getName())
+            .setSalary(customerEntity.getSalary())
+            .setAddressResponse(addressResponse)
+            .setProposalResponse(proposalResponseList));
     }
 
     public List<CustomerResponse> getAllCustomers() {
         return customerRepository.findAll().stream()
                 .map(customer -> new CustomerResponse()
-                        .setId(customer.getId())
-                        .setName(customer.getName())
-                        .setSalary(customer.getSalary())
-                        .setAddressId(customer.getAddressId()))
+                    .setId(customer.getId())
+                    .setName(customer.getName())
+                    .setSalary(customer.getSalary())
+                    .setAddressResponse(new AddressResponse().setId(customer.getAddressId())))
                 .toList();
     }
 
@@ -82,10 +104,10 @@ public class LoanService {
         customer = customerRepository.save(customer);
 
         return new CustomerResponse()
-                .setId(customer.getId())
-                .setName(customer.getName())
-                .setSalary(customer.getSalary())
-                .setAddressId(customer.getAddressId());
+            .setId(customer.getId())
+            .setName(customer.getName())
+            .setSalary(customer.getSalary())
+            .setAddressResponse(new AddressResponse().setId(customer.getAddressId()));
     }
 
     public CustomerResponse deleteCustomer(Integer id) {
@@ -96,7 +118,7 @@ public class LoanService {
                 .setId(customer.getId())
                 .setName(customer.getName())
                 .setSalary(customer.getSalary())
-                .setAddressId(customer.getAddressId())
+                .setAddressResponse(new AddressResponse().setId(customer.getAddressId()))
         );
 
         customerRepository.deleteById(id);
@@ -131,6 +153,24 @@ public class LoanService {
                 .setState(address.getState()));
     }
 
+    public List<AddressResponse> getFilteredAddressesList(AddressQuery query) {
+        return this.addressRepository.findAll().stream().filter(address -> {
+            return query != null 
+                && ((query.getZipcode() != null && address.getZipcode().contains(query.getZipcode())) 
+                    || (query.getStreet() != null && address.getStreet().contains(query.getStreet()))
+                    || (query.getCity() != null && address.getCity().contains(query.getCity()))
+                    || (query.getState() != null&& address.getState().contains(query.getState())));
+        })
+        .map(addresEntity -> {
+            return new AddressResponse()
+                .setId(addresEntity.getId())
+                .setZipcode(addresEntity.getZipcode())
+                .setStreet(addresEntity.getStreet())
+                .setCity(addresEntity.getCity())
+                .setState(addresEntity.getState());
+        }).toList();
+    }
+
     public List<AddressResponse> getAllAddresses() {
         return addressRepository.findAll().stream()
                 .map(address -> new AddressResponse()
@@ -160,8 +200,21 @@ public class LoanService {
                 .setState(address.getState());
     }
 
-    public void deleteAddress(Integer id) {
-        addressRepository.deleteById(id);
+    public Optional<AddressResponse> deleteAddress(Integer id) {
+        Optional<AddressEntity> addressOptional = addressRepository.deleteById(id);
+
+        if(addressOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        AddressEntity entity = addressOptional.get();
+
+        return Optional.of(new AddressResponse()
+                .setId(entity.getId())
+                .setZipcode(entity.getZipcode())
+                .setStreet(entity.getStreet())
+                .setCity(entity.getCity())
+                .setState(entity.getState()));
     }
 
     // Requisição de empréstimo com análise de risco
@@ -195,7 +248,7 @@ public class LoanService {
             loan.getInstallments().add(installment);
         }
 
-        ProposalEntity savedLoan = loanRequestRepository.save(loan);
+        ProposalEntity savedLoan = proposalRepository.save(loan);
         // Atualiza o loanRequestId nas parcelas e salva
         for (InstallmentEntity inst : savedLoan.getInstallments()) {
             inst.setLoanRequestId(savedLoan.getId());
@@ -238,7 +291,7 @@ public class LoanService {
 
     // Liquidação antecipada – calcula o valor presente das parcelas restantes
     public double earlySettlementValue(Integer loanRequestId, LocalDate settlementDate) {
-        ProposalEntity loan = loanRequestRepository.findById(loanRequestId)
+        ProposalEntity loan = proposalRepository.findById(loanRequestId)
                 .orElseThrow(() -> new IllegalArgumentException("Loan not found"));
         List<InstallmentEntity> installments = installmentRepository.findByLoanRequestId(loanRequestId);
         double presentValue = 0.0;
@@ -258,7 +311,7 @@ public class LoanService {
     }
 
     public Optional<ProposalResponse> getProposal(Integer customerId,Integer proposalId) {
-        return loanRequestRepository.findById(proposalId).map(loan -> new ProposalResponse()
+        return proposalRepository.findById(proposalId).map(loan -> new ProposalResponse()
                 .setId(loan.getId())
                 .setCustomerId(loan.getCustomerId())
                 .setAmount(loan.getAmount())
@@ -275,11 +328,11 @@ public class LoanService {
 
         return customerRepository.findAll().stream()
             .filter(customer -> addressIds.contains(customer.getAddressId()))
-            .map(customer -> new CustomerResponse()
+                .map(customer -> new CustomerResponse()
                     .setId(customer.getId())
                     .setName(customer.getName())
                     .setSalary(customer.getSalary())
-                    .setAddressId(customer.getAddressId()))
+                    .setAddressResponse(new AddressResponse().setId(customer.getAddressId())))
             .toList();
     }
 }

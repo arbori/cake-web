@@ -1,4 +1,4 @@
-package loan.capture;
+package com.thebank.loan.model;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,8 +8,8 @@ public class CustomerResponse {
     private Integer id;
     private String name;
     private Double salary;
-    private Integer addressId;
-    private List<ProposalResponse> loanRequests = new ArrayList<>();
+    private AddressResponse addressResponse;
+    private List<ProposalResponse> proposalResponse = new ArrayList<>();
 
     public Integer getId() {
         return id;
@@ -38,28 +38,28 @@ public class CustomerResponse {
         return this;
     }
 
-    public Integer getAddressId() {
-        return addressId;
+    public AddressResponse getAddressResponse() {
+        return addressResponse;
     }
 
-    public CustomerResponse setAddressId(Integer addressId) {
-        this.addressId = addressId;
+    public CustomerResponse setAddressResponse(AddressResponse addressResponse) {
+        this.addressResponse = addressResponse;
         return this;
     }
 
-    public List<ProposalResponse> getLoanRequests() {
-        return loanRequests;
+    public List<ProposalResponse> getProposalResponse() {
+        return proposalResponse;
     }
 
-    public CustomerResponse setLoanRequests(List<ProposalResponse> loanRequests) {
-        this.loanRequests = loanRequests;
+    public CustomerResponse setProposalResponse(List<ProposalResponse> loanRequests) {
+        this.proposalResponse = loanRequests;
         return this;
     }
 
     @Override
     public String toString() {
-        return "'CustomerData': {'id'='" + id + "', 'name'='" + name + "', 'salary'=" + salary + ", 'addressId'=" + addressId
-                + ", 'loanRequests'=" + loanRequests + "}";
+        return "\"CustomerData\": {\"id\"=\"" + id + "\", \"name\"=\"" + name + "\", \"salary\"=" + salary + ", " + addressResponse
+                + ", \"loanRequests\"=[" + proposalResponse + "]}";
     }
 
     @Override
@@ -68,8 +68,8 @@ public class CustomerResponse {
         hash = 31 * hash + Objects.hashCode(this.id);
         hash = 31 * hash + Objects.hashCode(this.name);
         hash = 31 * hash + Objects.hashCode(this.salary);
-        hash = 31 * hash + Objects.hashCode(this.addressId);
-        hash = 31 * hash + Objects.hashCode(this.loanRequests);
+        hash = 31 * hash + Objects.hashCode(this.addressResponse);
+        hash = 31 * hash + Objects.hashCode(this.proposalResponse);
         return hash;
     }
 
@@ -94,10 +94,10 @@ public class CustomerResponse {
         if (!Objects.equals(this.salary, other.salary)) {
             return false;
         }
-        if (!Objects.equals(this.addressId, other.addressId)) {
+        if (!Objects.equals(this.addressResponse, other.addressResponse)) {
             return false;
         }
-        if (!Objects.equals(this.loanRequests, other.loanRequests)) {
+        if (!Objects.equals(this.proposalResponse, other.proposalResponse)) {
             return false;
         }
         return true;

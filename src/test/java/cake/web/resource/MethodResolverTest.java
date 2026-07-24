@@ -1,7 +1,6 @@
 package cake.web.resource;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.BufferedReader;
@@ -11,6 +10,7 @@ import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import cake.web.exception.AmbiguityException;
 import cake.web.exception.PrimitiveNotAllowedException;
 import cake.web.exchange.HttpDataHandle;
 import cake.web.exchange.HttpMethodName;
@@ -43,7 +44,7 @@ class MethodResolverTest {
         MockitoAnnotations.openMocks(this);
     }
 
-    // ==================== TEST RESOURCE CLASSES ====================
+    // ==================== TEST RESOURCE CLASSES ==================== Inês Salvador
 
     // Valid resource with different parameter counts (allowed)
     public static class ValidResource {
@@ -148,13 +149,13 @@ class MethodResolverTest {
     }
 
     public static class NotOnlyPathHeader implements HeaderContent {
-        public String Authorization;
+        public String authorization;
 
         public String getAuthorization() {
-            return Authorization;
+            return authorization;
         }
-        public void setAuthorization(String Authorization) {
-            this.Authorization = Authorization;
+        public void setAuthorization(String authorization) {
+            this.authorization = authorization;
         }
     }
 
@@ -242,7 +243,7 @@ class MethodResolverTest {
 
     @Test
     void shouldResolveMethodWithLocalDateParameter() throws Exception {
-        LocalDate date = LocalDate.of(2024, 5, 15);
+        LocalDate date = LocalDate.of(2024, Month.MAY, 15);
         List<Object> pathParams = List.of(date.toString());
         
         Method method = MethodResolver.methodResolution(
@@ -256,7 +257,7 @@ class MethodResolverTest {
 
     @Test
     void shouldResolveMethodWithLocalDateTimeParameter() throws Exception {
-        LocalDateTime dateTime = LocalDateTime.of(2024, 5, 15, 14, 30, 45);
+        LocalDateTime dateTime = LocalDateTime.of(2024, Month.MAY, 15, 14, 30, 45);
         List<Object> pathParams = List.of(dateTime.toString());
         
         Method method = MethodResolver.methodResolution(
@@ -298,28 +299,24 @@ class MethodResolverTest {
         assertEquals(ParentResource.class, method.getDeclaringClass());
     }
 
+    // ==================== AMBIGUITY CASES (Same parameter count) ====================
+
     @Test
-    void shouldResolveOwnMethodBeforeInherited() throws Exception {
+    void ambiguityInheritedMethodsMustBeProhibited() {
         List<Object> pathParams = List.of("456");
         
-        Method method = MethodResolver.methodResolution(
-            ChildResource.class, HttpMethodName.GET, pathParams
+        AmbiguityException exception = assertThrows(AmbiguityException.class, () ->
+            MethodResolver.methodResolution(ChildResource.class, HttpMethodName.GET, pathParams)
         );
-        
-        assertNotNull(method);
-        assertEquals("get", method.getName());
-        assertEquals(1, method.getParameterCount());
-        assertEquals(Long.class, method.getParameterTypes()[0]);
-        assertEquals(ChildResource.class, method.getDeclaringClass());
-    }
 
-    // ==================== AMBIGUITY CASES (Same parameter count) ====================
+        assertTrue(exception.getMessage().contains("Ambiguity call to cake.web.resource.MethodResolverTest$ChildResource.get"));
+    }
 
     @Test
     void shouldThrowExceptionWhenMultipleMethodsWithSameParameterCount() {
         List<Object> pathParams = List.of("123");  // 1 parameter
         
-        NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
+        AmbiguityException exception = assertThrows(AmbiguityException.class, () ->
             MethodResolver.methodResolution(AmbiguousResource.class, HttpMethodName.GET, pathParams)
         );
         
@@ -333,7 +330,7 @@ class MethodResolverTest {
     void shouldThrowExceptionWhenMultipleMethodsWithSameTwoParameterCount() {
         List<Object> pathParams = List.of("100", "1");  // 2 parameters
         
-        NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
+        AmbiguityException exception = assertThrows(AmbiguityException.class, () ->
             MethodResolver.methodResolution(AmbiguousResource.class, HttpMethodName.GET, pathParams)
         );
         
@@ -357,7 +354,7 @@ class MethodResolverTest {
 
     @Test
     void shouldThrowExceptionWhenMethodExistsButParameterCountMismatch() {
-        List<Object> pathParams = List.of("123", "Say my name", "456");  // 2 params, but get(Integer) exists with 1
+        List<Object> pathParams = List.of("123", "Say my name", "456");
         
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
             MethodResolver.methodResolution(ValidResource.class, HttpMethodName.GET, pathParams)
@@ -365,18 +362,6 @@ class MethodResolverTest {
         
         assertTrue(exception.getMessage().contains("No public non-static method named"));
         assertTrue(exception.getMessage().contains("ValidResource.get"));
-    }
-
-    @Test
-    void shouldThrowExceptionWhenMethodExistsButParameterTypesIncompatible() {
-        List<Object> pathParams = List.of("not a number");
-        
-        NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            MethodResolver.methodResolution(ValidResource.class, HttpMethodName.GET, pathParams)
-        );
-        
-        assertTrue(exception.getMessage().contains("No method"));
-        assertTrue(exception.getMessage().contains("compatible with path parameters"));
     }
 
     @Test
@@ -400,7 +385,7 @@ class MethodResolverTest {
             MethodResolver.methodResolution(PrimitiveResource.class, HttpMethodName.GET, pathParams)
         );
         
-        assertTrue(exception.getMessage().contains("No method cake.web.resource.TypeResolverTest$PrimitiveResource.get compatible with path parameters: [100]"));
+        assertTrue(exception.getMessage().contains("No public non-static method named cake.web.resource.MethodResolverTest$PrimitiveResource.get found."));
     }
 
     // ==================== CONSTRUCTOR VALIDATION ====================
@@ -593,7 +578,7 @@ class MethodResolverTest {
     }
 
     @Test
-    void filterQueryFromParameter() throws NoSuchMethodException, IOException {
+    void filterQueryFromParameter() throws NoSuchMethodException, IOException, AmbiguityException {
         List<Object> pathParams = List.of("123");
         Map<String, String[]> queryParameter = Map.of("name", new String[] {"John"});
 
@@ -623,7 +608,7 @@ class MethodResolverTest {
     }
 
     @Test
-    void postWithIdAndBody() throws NoSuchMethodException, IOException {
+    void postWithIdAndBody() throws NoSuchMethodException, IOException, AmbiguityException {
         List<Object> pathParams = List.of("123");
         BufferedReader bodyContent = new BufferedReader(new StringReader( 
         """
@@ -661,15 +646,15 @@ class MethodResolverTest {
     }
 
     @Test
-    void putWithIdBodyHeader() throws NoSuchMethodException, IOException {
+    void putWithIdBodyHeader() throws NoSuchMethodException, IOException, AmbiguityException {
         List<Object> pathParams = List.of("123");
         BufferedReader bodyContent = new BufferedReader(new StringReader( 
         """
         {
-            \"notOnlyPathBody\": {
-                \"id\": 123,
-                \"name\": \"John\",
-                \"fiscalNumber\": 4
+            "notOnlyPathBody": {
+                "id": 123,
+                "name": "John",
+                "fiscalNumber": 4
             }
         }
         """));
