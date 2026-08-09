@@ -12,6 +12,33 @@ import cake.web.exchange.HttpMethodName;
 import cake.web.exchange.content.Convertion;
 
 /**
+ * <p>Handles method resolution with caching for performance optimization.</p>
+ * 
+ * <p>This class acts as the facade for method resolution in Cake Web. It wraps the
+ * {@link MethodResolver} logic and adds a caching layer to avoid repeated reflection
+ * for the same method signatures.</p>
+ * 
+ * <h3>Caching Strategy</h3>
+ * <ul>
+ *   <li><b>Cache Key:</b> {@code <className>#<parameterTypeHints>#<httpMethodName>}</li>
+ *   <li><b>Parameter Type Hints:</b> For String values, the framework uses {@code kindOfParamType()}
+ *       to infer the type; for other objects, the class name is used</li>
+ *   <li><b>Cache Validation:</b> On cache hit, the framework verifies that conversion still works
+ *       with the current path parameters</li>
+ * </ul>
+ * 
+ * <h3>Design Intention</h3>
+ * <p>Method resolution via reflection is relatively expensive. This class reduces the cost
+ * to O(1) after the first request for a given method signature. The cache key uses
+ * type hints rather than full parameter types to handle cases where the actual values
+ * differ but the type signature is the same (e.g., "123" and "456" are both integers).</p>
+ * 
+ * <h3>Thread Safety</h3>
+ * <p>This class uses {@link ConcurrentHashMap} for thread-safe caching.</p>
+ * 
+ * @since 1.0.0
+ * @see #findHttpMethod(Class, HttpMethodName, List, HttpDataHandle)
+ * @see MethodResolver
  */
 public class MethodHandler {
     private MethodHandler() {

@@ -1,5 +1,11 @@
 package cake.web.configuration;
 
+/**
+ * CakeWebConfig is the start node class for configuration strategy.
+ * 
+ * @since 0.0.45
+ * @author Marcelo Arbori Nogueira (marcelo.arbori@gmial.com) 
+ */
 public class CakeWebConfig {
     private int port = 8080;
     private String contextPath = "";

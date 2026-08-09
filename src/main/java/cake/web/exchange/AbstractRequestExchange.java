@@ -18,11 +18,37 @@ import cake.web.resource.MethodHandler;
 import cake.web.resource.MethodResolution;
 
 /**
- * Abstract base class for handling HTTP request exchanges.
- * It provides common functionality for processing requests, resolving
- * resources, * Constructs a BaseRequestExchange with the given request.
+ * <p>Base class for handling HTTP request exchanges in the Cake Web framework.</p>
  * 
- * and invoking HTTP methods.
+ * <p>This class orchestrates the entire request processing flow:</p>
+ * <ol>
+ *   <li>Parses the request URI into tokens</li>
+ *   <li>Extracts request data (body, query params, headers) via {@link HttpDataHandle}</li>
+ *   <li>Resolves the resource class chain from URI tokens</li>
+ *   <li>Instantiates resources using their no-arg constructors</li>
+ *   <li>Injects parent resource results into child resources</li>
+ *   <li>Resolves the target method via {@link MethodHandler}</li>
+ *   <li>Invokes the method with converted parameters</li>
+ * </ol>
+ * 
+ * <h3>Parent Resource Injection</h3>
+ * <p>When a URI has a nested resource chain (e.g., {@code /customer/123/proposal/456}),
+ * the framework automatically resolves each parent resource and passes its result
+ * as the first parameter to the child resource's method. This enables natural
+ * navigation of resource hierarchies.</p>
+ * 
+ * <h3>Design Intention</h3>
+ * <p>This class embodies the framework's core convention: <b>URI path → Java package/class</b>.
+ * By following naming conventions, developers can build REST APIs without configuration.</p>
+ * 
+ * <h3>Thread Safety</h3>
+ * <p>This class is not thread-safe. A new instance is created per request.</p>
+ * 
+ * @since 0.0.45
+ * @author Marcelo Arbori Nogueira (marcelo.arbori@gmial.com) 
+ * @see HttpMethodName
+ * @see MethodHandler
+ * @see HttpDataHandle
  */
 abstract class AbstractRequestExchange {
     private static final Map<String, Class<?>> resourceCache = new ConcurrentHashMap<>();

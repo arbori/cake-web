@@ -5,28 +5,44 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Utility class for converting string values to various target types based on 
- * their format. This class provides methods to convert path parameters, query 
- * parameters, and other string inputs to their corresponding Java types such 
- * as numeric types, date/time types, boolean, UUID, etc. The conversion logic 
- * is based on regular expressions that match the expected formats of the input 
- * values.
+ * <p>Utility class for converting string values to various Java types based on format recognition.</p>
  * 
- * There are colateral behavior under the decision to convert string values 
- * based on how string looks like. The format are agruped folow the content
- * in integers, floating point, date/time, boolean, UUID, and string types.
- * Then, is a content looks like an integer, the conversion will be made 
- * only for integers type (byte, short, int, long, BigInteger), even it is 
- * possible to convert it to a floating point type (float, double, BigDecimal).
- * The same applies for the other types. For example, if a content looks like
- * a date/time string, the conversion will be made only for date/time types,
- * even it is possible to convert it to a string type.
+ * <p>This class is the core of Cake Web's type conversion system. It uses regular expressions to
+ * identify the format of input strings and converts them to appropriate target types. The conversion
+ * is driven by format recognition rather than explicit type mapping, which allows for flexible
+ * and intuitive parameter binding.</p>
  * 
- * The consequence is if the frame work is trying convert a content for a 
- * Float parameter, but the content looks like an integer (e.g., "123"), 
- * the conversion will fail and the framework can throw an IlegalArgumentException
- * or NoSuchMethodException, depending on the context of the conversion 
- * (e.g., if it is trying to convert a query parameter, path parameter, etc.).
+ * <h3>Conversion Behavior</h3>
+ * <ul>
+ *   <li><b>Integers:</b> Strings containing only digits (with optional sign) are converted to
+ *       Byte, Short, Integer, Long, or BigInteger</li>
+ *   <li><b>Floating-point:</b> Strings with decimal points or scientific notation are converted to
+ *       Float, Double, or BigDecimal</li>
+ *   <li><b>Date/Time:</b> Strings matching ISO-8601 formats are converted to LocalDate,
+ *       LocalDateTime, OffsetDateTime, etc.</li>
+ *   <li><b>Boolean:</b> "true" and "false" (case-insensitive) are converted to Boolean</li>
+ *   <li><b>UUID:</b> Strings matching UUID format are converted to UUID</li>
+ *   <li><b>String:</b> All other values are returned as String</li>
+ * </ul>
+ * 
+ * <h3>Design Intention</h3>
+ * <p>This class embodies a key framework decision: <b>conversion by format recognition</b>.
+ * Instead of requiring annotations or explicit type declarations, the framework infers
+ * the appropriate conversion from the input format. This makes the framework more intuitive
+ * and reduces ceremony for developers.</p>
+ * 
+ * <h3>Important Behavioral Note</h3>
+ * <p>Because conversion is format-driven, a value that looks like an integer (e.g., "123")
+ * will only be converted to integer types, not to floating-point types. This prevents
+ * unexpected conversions but may cause {@link ClassCastException} if the target type
+ * is Float and the value looks like an integer.</p>
+ * 
+ * <h3>Thread Safety</h3>
+ * <p>This class is stateless and thread-safe.</p>
+ * 
+ * @since 1.0.0
+ * @see #convert(Object, Class)
+ * @see #kindOfParamType(Object)
  */
 public class Convertion {
     private Convertion() {
