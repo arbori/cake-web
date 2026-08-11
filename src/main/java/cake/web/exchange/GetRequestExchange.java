@@ -1,10 +1,9 @@
 package cake.web.exchange;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 import javax.servlet.http.HttpServletRequest;
+
+import cake.web.exception.AmbiguityException;
 
 public class GetRequestExchange extends AbstractRequestExchange {
     /**
@@ -19,20 +18,7 @@ public class GetRequestExchange extends AbstractRequestExchange {
     }
 
     @Override
-    public Object call() throws InstantiationException, IllegalAccessException,
-            IllegalArgumentException, InvocationTargetException, NoSuchMethodException {
-        Object resource = lookForResource();
-
-        if (resource != null) {
-            Method httpMethod = findHttpMethod(resource.getClass(), pathParams, HttpMethodName.GET);
-
-            if (httpMethod != null) {
-                setAttributes(resource, parameterMap);
-
-                return callHttpMethod(resource, httpMethod, pathParams);
-            }
-        }
-
-        return null;
+    public Object call() throws IllegalArgumentException, NoSuchMethodException, ClassNotFoundException, AmbiguityException {
+        return call(HttpMethodName.GET);
     }
 }

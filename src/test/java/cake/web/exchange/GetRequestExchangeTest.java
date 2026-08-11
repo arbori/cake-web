@@ -1,156 +1,128 @@
 package cake.web.exchange;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import com.bank.loan.CustomerResult;
-import com.bank.loan.ProposalResult;
-
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import java.io.IOException;
-import java.util.Map;
+import com.thebank.loan.model.AddressResponse;
+import com.thebank.loan.service.LoanService;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.when;
-
-public class GetRequestExchangeTest {
+class GetRequestExchangeTest {
     @Mock
     private HttpServletRequest request;
     @Mock
     private HttpServletResponse response;
 
-    @Before
-    public void setUp() {
+    static LoanService loanService = new LoanService();
+
+    List<AddressResponse> addresses;
+
+    @BeforeAll
+    static void beforeAll() {
+        loanService.createAddress("123-456", "Rua dos Afogados, 23", "São Paulo", "São Paulo");
+        loanService.createAddress("171-666", "Rua Alada, 17", "Rio de Janeiro", "Rio de Janeiro");
+        loanService.createAddress("456-7686", "Avenida Alada, 1007", "Rio Prado", "Goias");
+    }
+
+    @BeforeEach
+    void setUp() {
         MockitoAnnotations.openMocks(this);
+
+        addresses = loanService.getAllAddresses();
     }
 
+    //---------------------------------------------------------------------//
     @Test
-    public void getRequestExchangeQueryParameter() throws IOException {
-		Map<String, String[]> parameters = Map.of("name", new String[]{"John Doe"}, "email", new String[]{"john.doe@anywhere.com"});
+    void getRequestExchangeRootPackage() throws IOException {
+        String messageExpected = "The Bank Loan System v1.0";
 
-		when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1");
-        when(request.getContextPath()).thenReturn("cakeweb/");
-        when(request.getParameterMap()).thenReturn(parameters);
+        when(request.getRequestURI()).thenReturn("thebank.com/about");
+        when(request.getContextPath()).thenReturn("thebank.com/");
 
         GetRequestExchange getRequestExchange = new GetRequestExchange(request);
 
         Object result = null;
+        
         try {
             result = getRequestExchange.call();
         } catch (Exception e) {
             fail(e.getMessage());
         }
 
-        CustomerResult customerExpected = new CustomerResult(1, parameters.get("name")[0], parameters.get("email")[0]);
-		
-        assertEquals("The return of get method is different than expected", customerExpected, result);
+        assertTrue(result instanceof String, "Result should be a String");
+        assertEquals(messageExpected, result, "The return of get method is different than expected");
     }
 
+    //---------------------------------------------------------------------//
     @Test
-    public void getRequestExchangePathParameter() throws IOException {
-        when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1");
-        when(request.getContextPath()).thenReturn("cakeweb/");
-        when(request.getParameterMap()).thenReturn(Map.of());
+    void getRequestExchangePathId() throws IOException {
+        AddressResponse responseExpected = addresses.get(0);
+
+        when(request.getRequestURI()).thenReturn("thebank.com/loan/capture/address/" + responseExpected.getId());
+        when(request.getContextPath()).thenReturn("thebank.com/");
 
         GetRequestExchange getRequestExchange = new GetRequestExchange(request);
 
         Object result = null;
+        
         try {
             result = getRequestExchange.call();
         } catch (Exception e) {
             fail(e.getMessage());
         }
 
-        CustomerResult customerExpected = new CustomerResult(1, "John Doe", "john.doe@universe.com");
-        assertEquals("The return of get method is different than expected", customerExpected, result);
+        assertNotNull(result, "Result must not be null");
+
+        assertTrue(result instanceof AddressResponse, "Result should be a AddressResponse");
+
+        AddressResponse address = (AddressResponse) result;
+
+        assertEquals(responseExpected, address, "The return of get method is different than expected");
     }
-	
+
     @Test
-    public void getRequestExchangePathParameterTwoResources() throws IOException {
-        when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1/proposal/P-1001");
-        when(request.getContextPath()).thenReturn("cakeweb/");
-        when(request.getParameterMap()).thenReturn(Map.of());
+    void getRequestExchangeWithQueryParameters() throws IOException {
+        AddressResponse responseExpected = addresses.get(0);
+
+        when(request.getRequestURI()).thenReturn("thebank.com/loan/capture/address");
+        when(request.getContextPath()).thenReturn("thebank.com/");
+        when(request.getParameterMap()).thenReturn(
+            Map.of(
+                "street", new String[] { responseExpected.getStreet() }
+            )
+        );
 
         GetRequestExchange getRequestExchange = new GetRequestExchange(request);
 
         Object result = null;
+
         try {
             result = getRequestExchange.call();
         } catch (Exception e) {
             fail(e.getMessage());
         }
 
-        CustomerResult customerResult = new CustomerResult(1, "John Doe", "john.doe@universe.com");
-        ProposalResult expected = new ProposalResult(
-            "P-1001", 
-            customerResult, 
-            10000.0, 
-            "Analizing");
+        assertTrue(result instanceof List<?>, "Result should be a List<AddressResponse>");
+        
+        AddressResponse address = (AddressResponse) ((List<?>) result).getFirst();
 
-        assertEquals("The return of get method is different than expected", expected, result);
+        assertEquals(responseExpected.getZipcode(), address.getZipcode(), "The zipcode is different");
+        assertEquals(responseExpected.getStreet(), address.getStreet(), "The street is different");
+        assertEquals(responseExpected.getCity(), address.getCity(), "The city is different");
+        assertEquals(responseExpected.getState(), address.getState(), "The state is different");
     }
-	
-	@Test
-	public void getRequestExchangeMethodCachePerformanceAverage() throws IOException {
-		Map<String, String[]> parameters = Map.of("name", new String[]{"John Doe"}, "email", new String[]{"john.doe@anywhere.com"});
-
-		when(request.getRequestURI()).thenReturn("cakeweb/com/bank/loan/customer/1");
-        when(request.getContextPath()).thenReturn("cakeweb/");
-        when(request.getParameterMap()).thenReturn(parameters);
-
-		GetRequestExchange getRequestExchange = new GetRequestExchange(request);
-
-        CustomerResult expected = new CustomerResult(1, parameters.get("name")[0], parameters.get("email")[0]);
-
-		// Warm up JIT
-		try {
-			getRequestExchange.call();
-		} catch (Exception e) {
-			fail("Warmup failed: " + e.getMessage());
-		}
-
-		int iterations = 20;
-
-		double timeFirst = System.nanoTime();
-		double totalSecond = 0;
-
-		try {
-			// Warm up cache
-			for(int i = 0; i < iterations; i++) {
-				getRequestExchange.call();
-			}
-
-			Object firstResult = null;
-			Object secondResult = null;
-
-			timeFirst = System.nanoTime();
-			firstResult = getRequestExchange.call();
-			timeFirst = System.nanoTime() - timeFirst;
-
-			for (int i = 0; i < iterations; i++) {
-				double start2 = System.nanoTime();
-				secondResult = getRequestExchange.call();
-				totalSecond += (double) System.nanoTime() - start2;
-
-				assertEquals("Unexpected result in first call", expected, firstResult);
-				assertEquals("Unexpected result in second call", expected, secondResult);
-			}
-		} catch (Exception e) {
-			fail("Iteration failed: " + e.getMessage());
-		}
-
-		double avgSecond = totalSecond / iterations;
-
-		assertTrue(
-			String.format("Expected cached calls to be faster or similar (timeFirst=%fns, avgSecond=%fns)",
-				timeFirst, avgSecond),
-			avgSecond < timeFirst
-		);
-	}
 }

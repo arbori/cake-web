@@ -104,3 +104,12 @@ Unit tests are included to verify this behavior, checking that the average execu
 - Caching built-in for efficiency.
 
 This contract ensures maximum simplicity while preserving flexibility and runtime performance.
+
+
+====================================
+### Regras
+- O nome do objeto JSON no body deve ser o mesmo da classe com a primeira letra minusculo e dentro dele, os atributos devem seguir a nomenclatura dos atributos da classe. Além disso, tudo deve estar dentro de um objeto JSON anônimo ( { "className":{...}})
+
+### Funcionalidade
+- HttpDataHandle.buildFromBody(Class<?> targetType) precisa retornar uma lista. No body pode haver mais de um objeto.
+- Solução: Estratégia desenvolvida via IA (DeepSeek).

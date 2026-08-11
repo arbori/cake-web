@@ -5,8 +5,8 @@ import javax.servlet.http.HttpServletRequest;
 
 import cake.web.exception.AmbiguityException;
 
-public class PostRequestExchange extends AbstractRequestExchange {
-    public PostRequestExchange(HttpServletRequest request) throws IOException {
+public class TraceRequestExchange extends AbstractRequestExchange {
+    public TraceRequestExchange(HttpServletRequest request) throws IOException {
         super(request);
     }
 
