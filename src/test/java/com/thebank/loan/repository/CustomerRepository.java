@@ -15,7 +15,7 @@ public interface CustomerRepository {
 
     List<CustomerEntity> findAll();
 
-    void deleteById(Integer id);
+    Optional<CustomerEntity> deleteById(Integer id);
 
     boolean existsById(Integer id);
 }

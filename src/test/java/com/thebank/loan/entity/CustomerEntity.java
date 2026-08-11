@@ -58,8 +58,8 @@ public class CustomerEntity {
 
     @Override
     public String toString() {
-        return "'CustomerData': {'id'='" + id + "', 'name'='" + name + "', 'salary'=" + salary + ", 'addressId'=" + addressId
-                + ", 'loanRequests'=" + loanRequests + "}";
+        return "\"CustomerData\": {\"id\"=\"" + id + "\", \"name\"=\"" + name + "\", \"salary\"=" + salary + ", \"addressId\"=" + addressId
+                + ", \"loanRequests\"=" + loanRequests + "}";
     }
 
     @Override

@@ -7,6 +7,6 @@ public interface Repository<T, I> {
     T save(T entity);
     Optional<T> findById(I id);
     List<T> findAll();
-    void deleteById(I id);
+    Optional<T> deleteById(I id);
     boolean existsById(I id);
 }

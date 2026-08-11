@@ -3,8 +3,6 @@ package cake.web.exchange;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletRequest;
 
+import cake.web.exception.AmbiguityException;
 import cake.web.exception.NotFoundException;
 import cake.web.exception.ResourceResolutionException;
 import cake.web.resource.MethodHandler;
@@ -72,9 +71,10 @@ abstract class AbstractRequestExchange {
      * @throws IllegalArgumentException if method parameters do not match expected types
      * @throws NoSuchMethodException    if no suitable method is found
      * @throws ClassNotFoundException   if no resource class is found for the tokens
+     * @throws AmbiguityException 
      */
     public abstract Object call() 
-        throws IllegalArgumentException, NoSuchMethodException, ClassNotFoundException;
+        throws IllegalArgumentException, NoSuchMethodException, ClassNotFoundException, AmbiguityException;
 
     /**
      * Resolves the resource chain based on the request tokens and parameters,
@@ -85,9 +85,10 @@ abstract class AbstractRequestExchange {
      * @throws IllegalArgumentException if method parameters do not match expected types
      * @throws NoSuchMethodException    if no suitable method is found
      * @throws ClassNotFoundException   if no resource class is found for the tokens
+     * @throws AmbiguityException 
      */
     protected Object call(HttpMethodName httpMethod) 
-        throws IllegalArgumentException, NoSuchMethodException, ClassNotFoundException
+        throws IllegalArgumentException, NoSuchMethodException, ClassNotFoundException, AmbiguityException
     {
         Object resource = lookForResource();
 
@@ -106,8 +107,9 @@ abstract class AbstractRequestExchange {
      * @throws ClassNotFoundException    if no resource class is found for the tokens
      * @throws NoSuchMethodException    if a required method is not found during resolution
      * @throws IllegalArgumentException if method parameters do not match expected types
+     * @throws AmbiguityException 
      */
-    private Object lookForResource() throws ClassNotFoundException, NoSuchMethodException, IllegalArgumentException {
+    private Object lookForResource() throws ClassNotFoundException, NoSuchMethodException, IllegalArgumentException, AmbiguityException {
         Object resource = null;
         StringBuilder fullClassName = new StringBuilder();
 
@@ -176,9 +178,10 @@ abstract class AbstractRequestExchange {
      * @return the matching Method wrapped in MethodResolution, which includes the method and converted arguments
      * @throws NoSuchMethodException    if no suitable method is found
      * @throws IllegalArgumentException if no method matches the parameter types
+     * @throws AmbiguityException 
      */
     private MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName)
-            throws NoSuchMethodException, IllegalArgumentException {
+            throws NoSuchMethodException, IllegalArgumentException, AmbiguityException {
         MethodResolution methodResolution = MethodHandler.findHttpMethod(resourceClass, httpMethodName, pathParams, httpDataHandle);
             
         pathParams.clear();

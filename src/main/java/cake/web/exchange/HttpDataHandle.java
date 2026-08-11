@@ -1,26 +1,19 @@
 package cake.web.exchange;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import cake.web.exception.FrameworkException;
-import cake.web.exchange.content.BodyContent;
 import cake.web.exchange.content.Convertion;
-import cake.web.exchange.content.HeaderContent;
-import cake.web.exchange.content.ResourceFilter;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  */
@@ -30,9 +23,8 @@ public class HttpDataHandle {
     private final HttpServletRequest request;
     private final Map<String, String[]> queryParameterMap;
     private final Map<String, String> headers;
+    private final JsonNode bodyContent;
     private final String authToken;
-
-    private final JsonNode rootNode;
 
     /**
      * Constructs a RequestHandle by extracting relevant data from the
@@ -47,7 +39,7 @@ public class HttpDataHandle {
         // Initializa containers.
         this.queryParameterMap = request.getParameterMap();
         this.headers = extractHeaders();
-        this.rootNode = extractBodyContent();
+        this.bodyContent = extractBodyContent();
         this.authToken = extractAuthToken();
     }
 
@@ -61,7 +53,7 @@ public class HttpDataHandle {
      */
     public Object buildFromBody(Class<?> targetType) throws IOException {
         // There is no body content, so the result is null (e.g., for GET requests)
-        if(rootNode == null) {
+        if(bodyContent == null) {
             return null;
         }
 
@@ -69,10 +61,10 @@ public class HttpDataHandle {
         String key = targetType.getSimpleName();
         key = Character.toLowerCase(key.charAt(0)) + key.substring(1);
 
-        if (rootNode.has(key)) {
+        if (bodyContent.has(key)) {
             try {
                 // Parse only the subtree for this specific class
-                return MAPPER.treeToValue(rootNode.get(key), targetType);
+                return MAPPER.treeToValue(bodyContent.get(key), targetType);
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         "Failed to parse JSON body into " + targetType.getSimpleName() + ": " + e.getMessage(), e);
@@ -104,6 +96,13 @@ public class HttpDataHandle {
 
         for (var field : targetType.getDeclaredFields()) {
             String headerValue = headers.get(field.getName());
+
+            // In case that header attribute start with uppercase letter.
+            if(headerValue == null) {
+                headerValue = headers.get(
+                    field.getName().substring(0, 1).toUpperCase() + 
+                    field.getName().substring(1));
+            }
 
             if (headerValue != null && !headerValue.isEmpty()) {
                 trySetAttributes(field.getName(), headerValue, targetType, result);
@@ -181,13 +180,13 @@ public class HttpDataHandle {
      */
     private JsonNode extractBodyContent() throws IOException {
         // Get the body lines and concatenate them into a single string
-        String bodyContent = request.getReader() != null ? 
+        String body = request.getReader() != null ? 
             request.getReader().lines().reduce("", (acc, line) -> acc + line + "\n").trim() : 
             null;
 
         // If the body content is not empty, parse it as JSON and store in rootNode
-        if (bodyContent != null && !bodyContent.isEmpty()) {
-            return MAPPER.readTree(bodyContent);
+        if (body != null && !body.isEmpty()) {
+            return MAPPER.readTree(body);
         } else {
             return null;
         }

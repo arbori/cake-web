@@ -43,6 +43,9 @@ public class Convertion {
     private static final String ZONED_DATE_TIME_REGEX = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)(\\[.*\\])?$";
     private static final String UUID_REGEX = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";
 
+    /**
+     * Type that framework has capability to convert from String
+     */
     private static List<String> basicConversebleType = Arrays.asList(
         "java.lang.Boolean",
         "java.util.UUID",
@@ -238,6 +241,15 @@ public class Convertion {
         return "string";
     }
 
+    /**
+     * A type be a basic converseble type means that a parameter method will recieve the value
+     * converted from the string retrieved from path parameter. It is not a guarantee that 
+     * the content in the path parameter will convert for sure, it only means that the framework 
+     * has the logic to convert a String into this type.
+     * 
+     * @param type Type to check if framework can convert from String.
+     * @return Return true if the type is in the list of converseble types and false otherwise. 
+     */
     public static boolean isBasicConversebleType(Class<?> type) {
         return basicConversebleType.contains(type.getName());
     }

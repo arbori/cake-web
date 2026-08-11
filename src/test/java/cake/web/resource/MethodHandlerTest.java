@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import cake.web.exception.AmbiguityException;
 import cake.web.exchange.HttpDataHandle;
 import cake.web.exchange.HttpMethodName;
 
@@ -71,7 +72,7 @@ class MethodHandlerTest {
     // Helper class to expose internal logic for testing
     public static class MethodHandleTestHelper {
         public static MethodResolution findMethodInternal(Class<?> resourceClass, List<Object> pathParams, HttpMethodName httpMethodName, HttpDataHandle httpDataHandle) 
-                throws NoSuchMethodException {
+                throws NoSuchMethodException, IllegalArgumentException, AmbiguityException {
             // This would be the actual implementation
             // For now, we'll test via the concrete implementation
             return MethodHandler.findHttpMethod(resourceClass, httpMethodName, pathParams, httpDataHandle);
@@ -174,7 +175,7 @@ class MethodHandlerTest {
     @Test
     void shouldThrowExceptionWhenMultipleMethodsWithSameNameAndSameParameterCount() {
         // Act & Assert
-        NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
+        AmbiguityException exception = assertThrows(AmbiguityException.class, () ->
             MethodHandler.findHttpMethod(AmbiguousResource.class, HttpMethodName.POST, List.of("123"), httpDataHandle)
         );
         
@@ -187,7 +188,7 @@ class MethodHandlerTest {
     @Test
     void shouldThrowExceptionWhenMultipleMethodsWithSameNameAndSameParameterCountWithMoreParams() {
         // Act & Assert
-        NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
+        AmbiguityException exception = assertThrows(AmbiguityException.class, () ->
             MethodHandler.findHttpMethod(OverloadedResource.class, HttpMethodName.DELETE, List.of("1", "2"), httpDataHandle)
         );
         
@@ -229,7 +230,7 @@ class MethodHandlerTest {
     // ==================== CASE SENSITIVITY ====================
 
     @Test
-    void shouldMatchMethodNameCaseInsensitively() throws NoSuchMethodException, IllegalArgumentException {
+    void shouldMatchMethodNameCaseInsensitively() throws NoSuchMethodException, IllegalArgumentException, AmbiguityException {
         // HttpMethodName.GET = "get" (lowercase)
         // MixedCaseResource has method "GET" (uppercase) and "get" (lowercase)
         // Both exist but with 0 parameters, the framework should consider only

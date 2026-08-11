@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import cake.web.exception.AmbiguityException;
 import cake.web.exchange.HttpDataHandle;
 import cake.web.exchange.HttpMethodName;
 import cake.web.exchange.content.Convertion;
@@ -32,9 +33,10 @@ public class MethodHandler {
      * @return a MethodResolution object containing the resolved method and converted arguments
      * @throws NoSuchMethodException if no method is found, or if multiple methods match by name and parameter count
      * @throws IllegalArgumentException if path parameters cannot be converted to the required types
+     * @throws AmbiguityException if there is ambiguity calling the method
      */
     public static MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName, List<Object> pathParams, HttpDataHandle httpDataHandle) 
-            throws NoSuchMethodException, IllegalArgumentException 
+            throws NoSuchMethodException, IllegalArgumentException, AmbiguityException 
     {
         if(resourceClass == null) {
             throw new IllegalArgumentException("Resource class cannot be null");
@@ -101,16 +103,16 @@ public class MethodHandler {
                 sb.append((param instanceof String) ? 
                         Convertion.kindOfParamType(param) : 
                         param.getClass().getName())
-                    .append(","));
-            sb.setLength(sb.length() - 1); // Remove trailing comma
+                    .append(", "));
+
+            sb.setLength(sb.length() - 2); // Remove trailing comma
         }
 
         return new StringBuilder(resourceClass.getName())
-            .append(".")
-            .append(httpMethodName)
-            .append("(")
+            .append("#")
             .append(sb.toString())
-            .append(")")
+            .append("#")
+            .append(httpMethodName)
             .toString();
     }
 }

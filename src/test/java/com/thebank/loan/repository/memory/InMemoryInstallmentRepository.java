@@ -51,8 +51,18 @@ public class InMemoryInstallmentRepository implements Repository<InstallmentEnti
     }
 
     @Override
-    public void deleteById(Integer id) {
-        store.remove(id);
+    public Optional<InstallmentEntity> deleteById(Integer id) {
+        if(id != null) {
+            InstallmentEntity deleted = store.get(id);
+
+            if(deleted != null) {
+                store.remove(deleted.getId());
+
+                return Optional.of(deleted);
+            }
+        }
+
+        return Optional.empty();
     }
 
     @Override
