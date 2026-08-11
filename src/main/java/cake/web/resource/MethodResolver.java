@@ -18,11 +18,43 @@ import cake.web.exchange.content.HeaderContent;
 import cake.web.exchange.content.QueryParamContent;
 
 /**
- * Utility class for resolving the appropriate method to call on a resource class based on the HTTP method name and path parameters.
- * It attempts to find a method that matches the given method name and can accept the path parameters by converting them to the 
- * required types.
- * Overload endpoint is a limitation of the framework. So, only one http method representation with the same number of parameters is
- * allowed, if multiple methods match or if no method matches, it throws a NoSuchMethodException.
+ * <p>Extracts and provides access to HTTP request data for the framework.</p>
+ * 
+ * <p>This class acts as a unified data source for all HTTP request information:
+ * query parameters, headers, body content, and authentication tokens. It also
+ * provides factory methods to build strongly-typed objects from these data sources.</p>
+ * 
+ * <h3>Supported Data Sources</h3>
+ * <ul>
+ *   <li><b>Body:</b> JSON content parsed via Jackson, wrapped with class name key</li>
+ *   <li><b>Query Parameters:</b> URL query string, mapped to field names</li>
+ *   <li><b>Headers:</b> HTTP headers, mapped to field names (case-insensitive)</li>
+ *   <li><b>Authentication:</b> Bearer token from Authorization header</li>
+ * </ul>
+ * 
+ * <h3>JSON Format Requirement</h3>
+ * <p>For body content, the JSON must be wrapped in an object with the key matching
+ * the class name in lowercase. For example, for {@code CustomerRequest}, the expected
+ * JSON is {@code {"customerRequest": {...}}}.</p>
+ * 
+ * <h3>Field Mapping</h3>
+ * <ul>
+ *   <li><b>Query Parameters:</b> Field names must match query parameter names exactly</li>
+ *   <li><b>Headers:</b> Field names match header names (case-insensitive).
+ *       CamelCase field names are also matched to kebab-case (e.g., {@code traceId} → {@code Trace-Id})</li>
+ * </ul>
+ * 
+ * <h3>Design Intention</h3>
+ * <p>This class centralizes all request data extraction, making it easier to maintain
+ * and extend the framework's data binding capabilities.</p>
+ * 
+ * <h3>Thread Safety</h3>
+ * <p>This class is not thread-safe. A new instance is created per request.</p>
+ * 
+ * @since 1.0.0
+ * @see #buildFromBody(Class)
+ * @see #buildFromHeader(Class)
+ * @see #buildFromQueryParameter(Class)
  */
 public class MethodResolver {
     private MethodResolver() {

@@ -19,15 +19,36 @@ import cake.web.exchange.PostRequestExchange;
 import cake.web.exchange.PutRequestExchange;
 import cake.web.exchange.TraceRequestExchange;
 
+/**
+ * Servlet implementation that routes HTTP requests to the corresponding
+ * exchange handlers defined in the application.
+ * <p>
+ * Each supported HTTP method is mapped to a dedicated exchange class. The
+ * servlet handles successful responses with HTTP 200 and delegates exception
+ * handling to the shared {@link ExceptionMapper} instance.
+ * </p>
+ * 
+ * @since 0.0.45
+ * @author Marcelo Arbori Nogueira (marcelo.arbori@gmial.com) 
+ */
 public class RootServlet extends HttpServlet {
     private static final long serialVersionUID = -7807285398220322910L;
 
     private static final ExceptionMapper exceptionMapper = new DefaultExceptionMapper();
 
+    /**
+     * Create a new RootServlet instance.
+     */
     public RootServlet() {
         super(); // default constructor required
     }
 
+    /**
+     * Handle HTTP GET requests.
+     *
+     * @param request the HTTP request
+     * @param response the HTTP response
+     */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -44,6 +65,12 @@ public class RootServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Handle HTTP HEAD requests.
+     *
+     * @param request the HTTP request
+     * @param response the HTTP response
+     */
     @Override
     protected void doHead(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -60,6 +87,12 @@ public class RootServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Handle HTTP POST requests.
+     *
+     * @param request the HTTP request
+     * @param response the HTTP response
+     */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -76,6 +109,12 @@ public class RootServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Handle HTTP PUT requests.
+     *
+     * @param request the HTTP request
+     * @param response the HTTP response
+     */
     @Override
     protected void doPut(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -92,6 +131,12 @@ public class RootServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Handle HTTP DELETE requests.
+     *
+     * @param request the HTTP request
+     * @param response the HTTP response
+     */
     @Override
     protected void doDelete(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -108,10 +153,17 @@ public class RootServlet extends HttpServlet {
         }
     }
 
-    // This method is not provided by base class. But, it is defined by http
-    // specification and its behavior is pretty
-    // different that others method implemented here. So, this behavior will be
-    // implemented in the future.
+    /**
+     * Handle HTTP CONNECT requests.
+     * <p>
+     * This method is not part of the {@link HttpServlet} base implementation,
+     * but it is defined by the HTTP specification and is supported by this
+     * servlet through a dedicated exchange handler.
+     * </p>
+     *
+     * @param request the HTTP request
+     * @param response the HTTP response
+     */
     protected void doConnect(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         try {
@@ -127,6 +179,12 @@ public class RootServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Handle HTTP OPTIONS requests.
+     *
+     * @param request the HTTP request
+     * @param response the HTTP response
+     */
     @Override
     protected void doOptions(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -143,6 +201,12 @@ public class RootServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Handle HTTP TRACE requests.
+     *
+     * @param request the HTTP request
+     * @param response the HTTP response
+     */
     @Override
     protected void doTrace(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -159,8 +223,16 @@ public class RootServlet extends HttpServlet {
         }
     }
 
-    // This method is not provided by base class. The behavior is similar to the
-    // put. This behavior will be implemented in the future.
+    /**
+     * Handle HTTP PATCH requests.
+     * <p>
+     * This method is not part of the {@link HttpServlet} base implementation,
+     * but patch semantics are handled through a dedicated exchange class.
+     * </p>
+     *
+     * @param request the HTTP request
+     * @param response the HTTP response
+     */
     protected void doPath(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         try {
