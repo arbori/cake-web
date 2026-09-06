@@ -3,6 +3,7 @@ package cake.web.exchange;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -57,22 +58,58 @@ public class HttpDataHandle {
             return null;
         }
 
-        // Convert to a key (e.g., "Customer" -> "customer")
-        String key = targetType.getSimpleName();
-        key = Character.toLowerCase(key.charAt(0)) + key.substring(1);
-
-        if (bodyContent.has(key)) {
-            try {
-                // Parse only the subtree for this specific class
-                return MAPPER.treeToValue(bodyContent.get(key), targetType);
-            } catch (Exception e) {
-                throw new IllegalArgumentException(
-                        "Failed to parse JSON body into " + targetType.getSimpleName() + ": " + e.getMessage(), e);
+        try {
+            if(targetType.isArray()) {
+                return buildArray(targetType.getComponentType());
             }
-        }
+            else if(targetType.getName().equals("java.util.List")) {
+                return buildList(targetType);
+            }
+            else {
+                return MAPPER.readValue(bodyContent.toString(), 
+                    MAPPER.getTypeFactory().constructArrayType(targetType));
 
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException(
+                """
+                Cannot parse JSON as T[], List<T> or a single object of <name>.        
+                """
+                .replace("T", targetType.getName())
+                .replace("<name>", targetType.getName())
+            );
+        }
+    }
+
+    private Object buildList(Class<?> elementType) throws IOException {
+        return Arrays.asList(buildArray(elementType));
+    }
+
+    private Object[] buildArray(Class<?> elementType) throws IOException {
+        // Try raw array first
+        if (bodyContent.isArray()) {
+            return MAPPER.readValue(bodyContent.toString(), 
+                MAPPER.getTypeFactory().constructArrayType(elementType));
+        }
+        
+        // Try wrapped with plural key
+        String key = elementType.getSimpleName().toLowerCase() + "s";
+        if (bodyContent.has(key) && bodyContent.get(key).isArray()) {
+            return MAPPER.readValue(bodyContent.get(key).toString(), 
+                MAPPER.getTypeFactory().constructArrayType(elementType));
+        }
+        
+        // Try single object (wrap as array of one) - backward compatibility
+        String singularKey = elementType.getSimpleName().toLowerCase();
+        if (bodyContent.has(singularKey)) {
+            Object singleObject = MAPPER.treeToValue(bodyContent.get(singularKey), elementType);
+            return new Object[] { singleObject };
+        }
+        
         throw new IllegalArgumentException(
-                "There is no object named " + key + " in the JSON body for type " + targetType.getSimpleName() + ".");
+            "Cannot parse JSON as " + elementType.getSimpleName() + "[]. " +
+            "Expected array (raw or wrapped with '" + key + "') or single object."
+        );
     }
 
     /**
