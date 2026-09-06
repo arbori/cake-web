@@ -70,4 +70,71 @@ public class Address {
     public Optional<AddressResponse> delete(Integer id) {
         return loanService.deleteAddress(id);
     }
+
+    /**
+     * HEAD endpoint simulation.
+     * HEAD returns the same resource metadata/object as GET.
+     *
+     * @param id Address ID
+     * @return AddressResponse or null if not found
+     */
+    public AddressResponse head(Integer id) {
+        return get(id);
+    }
+
+    /**
+     * OPTIONS endpoint simulation.
+     * OPTIONS returns resource information.
+     *
+     * @param id Address ID
+     * @return AddressResponse or null if not found
+     */
+    public AddressResponse options(Integer id) {
+        return get(id);
+    }
+
+    /**
+     * PATCH endpoint simulation.
+     * Partially updates address attributes with non-null values provided.
+     *
+     * @param id Address ID
+     * @param addressRequest Partial address update request
+     * @return Updated AddressResponse or null if not found
+     */
+    public AddressResponse patch(Integer id, AddressRequest addressRequest) {
+        try {
+            return loanService.updateAddress(
+                id,
+                addressRequest.getZipcode(),
+                addressRequest.getStreet(),
+                addressRequest.getCity(),
+                addressRequest.getState()
+            );
+        } catch (IllegalArgumentException _) {
+            return null;
+        }
+    }
+
+    /**
+     * TRACE endpoint simulation.
+     * Echoes the resource representation for diagnostic/troubleshooting purposes.
+     *
+     * @param id Address ID
+     * @return AddressResponse or null if not found
+     */
+    public AddressResponse trace(Integer id) {
+        return get(id);
+    }
+
+    /**
+     * CONNECT endpoint simulation.
+     * Establishes / simulates tunnel connection for the address resource.
+     *
+     * @param id Address ID
+     * @return AddressResponse or null if not found
+     */
+    public AddressResponse connect(Integer id) {
+        return get(id);
+    }
 }
+

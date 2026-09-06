@@ -123,11 +123,10 @@ class HttpDataHandleTest {
         when(request.getParameterMap()).thenReturn(Collections.emptyMap());
         when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
 
-        HttpDataHandle handle = new HttpDataHandle(request);
-
-        assertThrows(IllegalArgumentException.class, () ->
-            handle.buildFromBody(TestBody.class)
-        );
+        assertThrows(tools.jackson.core.exc.StreamReadException.class, () -> {
+            HttpDataHandle handle = new HttpDataHandle(request);
+            handle.buildFromBody(TestBody.class);
+        });
     }
 
     // ==================== BUILD FROM QUERY TESTS ====================
