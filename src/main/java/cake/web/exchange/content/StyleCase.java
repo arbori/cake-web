@@ -118,21 +118,38 @@ public final class StyleCase {
     }
 
     /**
-     * Helper to split any string (kebab, snake, camel, Pascal) into individual
-     * lowercase words.
+     * Helper to split any string (kebab-case, snake_case, camelCase, PascalCase, or acronyms)
+     * into individual lowercase words.
+     *
+     * @param text the input string to split
+     * @return list of word tokens
      */
     public static List<String> splitWords(String text) {
         List<String> words = new ArrayList<>();
         if (text == null || text.isEmpty())
             return words;
 
-        // Replace delimiters with space
+        // Step 1: Replace explicit word delimiters (hyphens, underscores, dots) with whitespace.
+        // Example: "x-request_id.v1" -> "x request id v1"
         String cleaned = text.replaceAll("[-_.]+", " ");
 
-        // Split camelCase boundaries (e.g., "xRequestId" -> "x Request Id")
+        // Step 2: Split standard camelCase / PascalCase word boundaries (e.g., "xRequestId" -> "x Request Id").
+        // Regex explanation:
+        // - "(?<=[a-z0-9])" : Positive Lookbehind asserting the preceding character is a lowercase letter or digit.
+        // - "(?=[A-Z])"       : Positive Lookahead asserting the following character is an uppercase letter.
+        // This matches the zero-width boundary between a lowercase/number and an uppercase letter and inserts a space
+        // without consuming or deleting any characters (e.g., "x" | "Request" | "Id").
         cleaned = cleaned.replaceAll("(?<=[a-z0-9])(?=[A-Z])", " ");
+
+        // Step 3: Split acronym boundaries followed by capitalized words (e.g., "XMLParserRequest" -> "XML Parser Request").
+        // Regex explanation:
+        // - "(?<=[A-Z])"      : Positive Lookbehind asserting the preceding character is an uppercase letter (in an acronym).
+        // - "(?=[A-Z][a-z])"  : Positive Lookahead asserting the following characters are an uppercase letter followed by
+        //                       a lowercase letter (the start of the next capitalized word).
+        // This splits right before the final capital letter of an acronym sequence (e.g., "XM" | "L" "Parser" -> "XML Parser").
         cleaned = cleaned.replaceAll("(?<=[A-Z])(?=[A-Z][a-z])", " ");
 
+        // Step 4: Split on remaining whitespace and collect non-empty tokens.
         for (String token : cleaned.trim().split("\\s+")) {
             if (!token.isEmpty()) {
                 words.add(token);
