@@ -6,12 +6,14 @@ import java.lang.reflect.Method;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import javax.servlet.http.HttpServletRequest;
 
 
 import cake.web.exception.FrameworkException;
 import cake.web.exchange.content.Convertion;
+import cake.web.exchange.content.StyleCase;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -58,9 +60,13 @@ public class HttpDataHandle {
         }
 
         // Convert to a key (e.g., "Customer" -> "customer")
-        String key = targetType.getSimpleName();
-        key = Character.toLowerCase(key.charAt(0)) + key.substring(1);
-
+        String key = StyleCase.toCamelCase(targetType.getSimpleName());
+        
+        if (!bodyContent.has(key)) {
+            // Fallback check for snake_case: "customer_request"
+            key = StyleCase.toSnakeCase(targetType.getSimpleName());
+        }
+        
         if (bodyContent.has(key)) {
             try {
                 // Parse only the subtree for this specific class
@@ -95,13 +101,17 @@ public class HttpDataHandle {
         }
 
         for (var field : targetType.getDeclaredFields()) {
+            // 1. Direct match ("e.g.: xRequestId")
             String headerValue = headers.get(field.getName());
 
-            // In case that header attribute start with uppercase letter.
-            if(headerValue == null) {
-                headerValue = headers.get(
-                    field.getName().substring(0, 1).toUpperCase() + 
-                    field.getName().substring(1));
+            // 2. Kebab-case match ("e.g.: x-request-id")
+            if (headerValue == null) {
+                headerValue = headers.get(StyleCase.toKebabCase(field.getName()));
+            }
+
+            // 3. Train-case match ("e.g.: X-Request-Id")
+            if (headerValue == null) {
+                headerValue = headers.get(StyleCase.toTrainCase(field.getName()));
             }
 
             if (headerValue != null && !headerValue.isEmpty()) {
@@ -132,7 +142,16 @@ public class HttpDataHandle {
         }
 
         for (var field : targetType.getDeclaredFields()) {
+            // Check exact camelCase, snake_case ("min_age"), or kebab-case ("min-age")
             String[] queryParam = queryParameterMap.get(field.getName());
+
+            if (queryParam == null) {
+                queryParam = queryParameterMap.get(StyleCase.toSnakeCase(field.getName()));
+            }
+
+            if (queryParam == null) {
+                queryParam = queryParameterMap.get(StyleCase.toKebabCase(field.getName()));
+            }
 
             if (queryParam != null && queryParam[0] != null) {
                 String value = !queryParam[0].isEmpty() ? queryParam[0] : null;
@@ -160,7 +179,7 @@ public class HttpDataHandle {
      * @return a Map of header names to values
      */
     private Map<String, String> extractHeaders() {
-        Map<String, String> result = new HashMap<>();
+        Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         Enumeration<String> names = request.getHeaderNames();
 
         while (names != null && names.hasMoreElements()) {
