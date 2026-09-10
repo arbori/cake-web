@@ -7,12 +7,14 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import javax.servlet.http.HttpServletRequest;
 
 
 import cake.web.exception.FrameworkException;
 import cake.web.exchange.content.Convertion;
+import cake.web.exchange.content.StyleCase;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -58,56 +60,26 @@ public class HttpDataHandle {
             return null;
         }
 
-        try {
-            if(targetType.isArray()) {
-                return buildArray(targetType.getComponentType());
-            }
-            else if(targetType.getName().equals("java.util.List")) {
-                return buildList(targetType);
-            }
-            else {
-                return MAPPER.readValue(bodyContent.toString(), 
-                    MAPPER.getTypeFactory().constructArrayType(targetType));
-
-            }
-        } catch (Exception e) {
-            throw new IllegalArgumentException(
-                """
-                Cannot parse JSON as T[], List<T> or a single object of <name>.        
-                """
-                .replace("T", targetType.getName())
-                .replace("<name>", targetType.getName())
-            );
-        }
-    }
-
-    private Object buildList(Class<?> elementType) throws IOException {
-        return Arrays.asList(buildArray(elementType));
-    }
-
-    private Object[] buildArray(Class<?> elementType) throws IOException {
-        // Try raw array first
-        if (bodyContent.isArray()) {
-            return MAPPER.readValue(bodyContent.toString(), 
-                MAPPER.getTypeFactory().constructArrayType(elementType));
+        // Convert to a key (e.g., "Customer" -> "customer")
+        String key = StyleCase.toCamelCase(targetType.getSimpleName());
+        
+        if (!bodyContent.has(key)) {
+            // Fallback check for snake_case: "customer_request"
+            key = StyleCase.toSnakeCase(targetType.getSimpleName());
         }
         
-        // Try wrapped with plural key
-        String key = elementType.getSimpleName().toLowerCase() + "s";
-        if (bodyContent.has(key) && bodyContent.get(key).isArray()) {
-            return MAPPER.readValue(bodyContent.get(key).toString(), 
-                MAPPER.getTypeFactory().constructArrayType(elementType));
-        }
-        
-        // Try single object (wrap as array of one) - backward compatibility
-        String singularKey = elementType.getSimpleName().toLowerCase();
-        if (bodyContent.has(singularKey)) {
-            Object singleObject = MAPPER.treeToValue(bodyContent.get(singularKey), elementType);
-            return new Object[] { singleObject };
+        if (bodyContent.has(key)) {
+            try {
+                // Parse only the subtree for this specific class
+                return MAPPER.treeToValue(bodyContent.get(key), targetType);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(
+                        "Failed to parse JSON body into " + targetType.getSimpleName() + ": " + e.getMessage(), e);
+            }
         }
         
         throw new IllegalArgumentException(
-            "Cannot parse JSON as " + elementType.getSimpleName() + "[]. " +
+            "Cannot parse JSON as " + targetType.getSimpleName() + "[]. " +
             "Expected array (raw or wrapped with '" + key + "') or single object."
         );
     }
@@ -132,13 +104,17 @@ public class HttpDataHandle {
         }
 
         for (var field : targetType.getDeclaredFields()) {
+            // 1. Direct match ("e.g.: xRequestId")
             String headerValue = headers.get(field.getName());
 
-            // In case that header attribute start with uppercase letter.
-            if(headerValue == null) {
-                headerValue = headers.get(
-                    field.getName().substring(0, 1).toUpperCase() + 
-                    field.getName().substring(1));
+            // 2. Kebab-case match ("e.g.: x-request-id")
+            if (headerValue == null) {
+                headerValue = headers.get(StyleCase.toKebabCase(field.getName()));
+            }
+
+            // 3. Train-case match ("e.g.: X-Request-Id")
+            if (headerValue == null) {
+                headerValue = headers.get(StyleCase.toTrainCase(field.getName()));
             }
 
             if (headerValue != null && !headerValue.isEmpty()) {
@@ -169,7 +145,16 @@ public class HttpDataHandle {
         }
 
         for (var field : targetType.getDeclaredFields()) {
+            // Check exact camelCase, snake_case ("min_age"), or kebab-case ("min-age")
             String[] queryParam = queryParameterMap.get(field.getName());
+
+            if (queryParam == null) {
+                queryParam = queryParameterMap.get(StyleCase.toSnakeCase(field.getName()));
+            }
+
+            if (queryParam == null) {
+                queryParam = queryParameterMap.get(StyleCase.toKebabCase(field.getName()));
+            }
 
             if (queryParam != null && queryParam[0] != null) {
                 String value = !queryParam[0].isEmpty() ? queryParam[0] : null;
@@ -197,7 +182,7 @@ public class HttpDataHandle {
      * @return a Map of header names to values
      */
     private Map<String, String> extractHeaders() {
-        Map<String, String> result = new HashMap<>();
+        Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         Enumeration<String> names = request.getHeaderNames();
 
         while (names != null && names.hasMoreElements()) {

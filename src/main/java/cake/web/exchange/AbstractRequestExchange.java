@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import cake.web.exception.AmbiguityException;
 import cake.web.exception.NotFoundException;
 import cake.web.exception.ResourceResolutionException;
+import cake.web.exchange.content.StyleCase;
 import cake.web.resource.MethodHandler;
 import cake.web.resource.MethodResolution;
 
@@ -146,7 +147,10 @@ abstract class AbstractRequestExchange {
         // First we need to find the root resource, which is the first class that can be loaded from the tokens.
         while(tokenIterator.hasNext() && resource == null) {
             token = tokenIterator.next();
-            classFounded = tryLoadClass(fullClassName.toString(), capitalize(token));
+
+            String className = StyleCase.toPascalCase(token);
+
+            classFounded = tryLoadClass(fullClassName.toString(), className);
 
             // If no class found, ...
             if (!classFounded.isPresent()) {
@@ -163,7 +167,10 @@ abstract class AbstractRequestExchange {
         // The resource was founded previously. Then, take the next tokens and try to find child resources or path parameters.
         while(resource != null && tokenIterator.hasNext()) {
             token = tokenIterator.next();
-            classFounded = tryLoadClass(fullClassName.toString(), capitalize(token));
+
+            String className = StyleCase.toPascalCase(token);
+
+            classFounded = tryLoadClass(fullClassName.toString(), className);
 
             // The resource was founded previously.
             // If other class was not found, ...
