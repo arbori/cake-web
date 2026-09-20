@@ -53,6 +53,16 @@ class HttpDataHandleTest {
         public void setAge(Integer age) { this.age = age; }
     }
 
+    public static class TestMultiWordQuery implements QueryParamContent {
+        private String userCity;
+        private Integer minAge;
+
+        public String getUserCity() { return userCity; }
+        public void setUserCity(String userCity) { this.userCity = userCity; }
+        public Integer getMinAge() { return minAge; }
+        public void setMinAge(Integer minAge) { this.minAge = minAge; }
+    }
+
     public static class TestHeader implements HeaderContent {
         private String authorization;
         private String xRequestId;
@@ -129,6 +139,36 @@ class HttpDataHandleTest {
         });
     }
 
+    @Test
+    void shouldBuildFromBodyWithSnakeCaseKey() throws Exception {
+        String json = "{\"test_body\": {\"id\": 456, \"name\": \"Jane Doe\"}}";
+        when(request.getReader()).thenReturn(new BufferedReader(new StringReader(json)));
+        when(request.getParameterMap()).thenReturn(Collections.emptyMap());
+        when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+
+        HttpDataHandle handle = new HttpDataHandle(request);
+        TestBody result = (TestBody) handle.buildFromBody(TestBody.class);
+
+        assertNotNull(result);
+        assertEquals(456, result.getId());
+        assertEquals("Jane Doe", result.getName());
+    }
+
+    @Test
+    void shouldBuildFromBodyWithKebabCaseKey() throws Exception {
+        String json = "{\"test-body\": {\"id\": 789, \"name\": \"Alice\"}}";
+        when(request.getReader()).thenReturn(new BufferedReader(new StringReader(json)));
+        when(request.getParameterMap()).thenReturn(Collections.emptyMap());
+        when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+
+        HttpDataHandle handle = new HttpDataHandle(request);
+        TestBody result = (TestBody) handle.buildFromBody(TestBody.class);
+
+        assertNotNull(result);
+        assertEquals(789, result.getId());
+        assertEquals("Alice", result.getName());
+    }
+
     // ==================== BUILD FROM QUERY TESTS ====================
 
     @Test
@@ -177,6 +217,42 @@ class HttpDataHandleTest {
 
         assertNotNull(result);
         assertEquals("São Paulo", result.getCity()); // Only first value used
+    }
+
+    @Test
+    void shouldBuildFromQueryParametersInSnakeCase() throws Exception {
+        Map<String, String[]> queryParams = new HashMap<>();
+        queryParams.put("user_city", new String[]{"Curitiba"});
+        queryParams.put("min_age", new String[]{"30"});
+
+        when(request.getParameterMap()).thenReturn(queryParams);
+        when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+        when(request.getReader()).thenReturn(null);
+
+        HttpDataHandle handle = new HttpDataHandle(request);
+        TestMultiWordQuery result = (TestMultiWordQuery) handle.buildFromQueryParameter(TestMultiWordQuery.class);
+
+        assertNotNull(result);
+        assertEquals("Curitiba", result.getUserCity());
+        assertEquals(30, result.getMinAge());
+    }
+
+    @Test
+    void shouldBuildFromQueryParametersInKebabCase() throws Exception {
+        Map<String, String[]> queryParams = new HashMap<>();
+        queryParams.put("user-city", new String[]{"Florianópolis"});
+        queryParams.put("min-age", new String[]{"35"});
+
+        when(request.getParameterMap()).thenReturn(queryParams);
+        when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+        when(request.getReader()).thenReturn(null);
+
+        HttpDataHandle handle = new HttpDataHandle(request);
+        TestMultiWordQuery result = (TestMultiWordQuery) handle.buildFromQueryParameter(TestMultiWordQuery.class);
+
+        assertNotNull(result);
+        assertEquals("Florianópolis", result.getUserCity());
+        assertEquals(35, result.getMinAge());
     }
 
     // ==================== BUILD FROM HEADER TESTS ====================
@@ -254,6 +330,50 @@ class HttpDataHandleTest {
 
         assertNotNull(result);
         assertEquals("Bearer token123", result.getAuthorization());
+    }
+
+    @Test
+    void shouldBuildFromTrainCaseHeaders() throws Exception {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer tokenTrain");
+        headers.put("X-Request-Id", "req-train-789");
+
+        Enumeration<String> headerNames = Collections.enumeration(headers.keySet());
+
+        when(request.getHeaderNames()).thenReturn(headerNames);
+        when(request.getHeader("Authorization")).thenReturn("Bearer tokenTrain");
+        when(request.getHeader("X-Request-Id")).thenReturn("req-train-789");
+        when(request.getParameterMap()).thenReturn(Collections.emptyMap());
+        when(request.getReader()).thenReturn(null);
+
+        HttpDataHandle handle = new HttpDataHandle(request);
+        TestHeader result = (TestHeader) handle.buildFromHeader(TestHeader.class);
+
+        assertNotNull(result);
+        assertEquals("Bearer tokenTrain", result.getAuthorization());
+        assertEquals("req-train-789", result.getXRequestId());
+    }
+
+    @Test
+    void shouldBuildFromCamelCaseHeaders() throws Exception {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("authorization", "Bearer tokenCamel");
+        headers.put("xRequestId", "req-camel-101");
+
+        Enumeration<String> headerNames = Collections.enumeration(headers.keySet());
+
+        when(request.getHeaderNames()).thenReturn(headerNames);
+        when(request.getHeader("authorization")).thenReturn("Bearer tokenCamel");
+        when(request.getHeader("xRequestId")).thenReturn("req-camel-101");
+        when(request.getParameterMap()).thenReturn(Collections.emptyMap());
+        when(request.getReader()).thenReturn(null);
+
+        HttpDataHandle handle = new HttpDataHandle(request);
+        TestHeader result = (TestHeader) handle.buildFromHeader(TestHeader.class);
+
+        assertNotNull(result);
+        assertEquals("Bearer tokenCamel", result.getAuthorization());
+        assertEquals("req-camel-101", result.getXRequestId());
     }
 
     // ==================== AUTH TOKEN TESTS ====================

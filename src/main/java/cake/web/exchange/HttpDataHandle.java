@@ -67,6 +67,11 @@ public class HttpDataHandle {
             key = StyleCase.toSnakeCase(targetType.getSimpleName());
         }
         
+        if (!bodyContent.has(key)) {
+            // Fallback check for kebab_case: "customer-request"
+            key = StyleCase.toKebabCase(targetType.getSimpleName());
+        }
+        
         if (bodyContent.has(key)) {
             try {
                 // Parse only the subtree for this specific class
@@ -237,7 +242,7 @@ public class HttpDataHandle {
      * @param instance the object instance to set the attribute on
      */
     private void trySetAttributes(String name, Object value, Class<?> clazz, Object instance) {
-        String setterName = "set" + name.substring(0, 1).toUpperCase() + name.substring(1);
+        String setterName = StyleCase.toSetterName(name);
 
         // try setter methods first
         try {
