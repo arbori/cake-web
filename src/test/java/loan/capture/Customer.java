@@ -81,6 +81,22 @@ public class Customer {
         }
     }
 
+    /**
+     * POST endpoint simulation for creating a list of customers
+     */
+    public List<CustomerResponse> post(List<CustomerRequest> customerRequestList) throws BadRequestException {
+        if (customerRequestList == null) {
+            throw new BadRequestException("No body in request");
+        }
+
+        List<CustomerResponse> responses = new java.util.ArrayList<>();
+        for (CustomerRequest customerRequest : customerRequestList) {
+            responses.add(post(customerRequest));
+        }
+
+        return responses;
+    }
+
     private Optional<AddressResponse> retrieveAddress(AddressRequest addressRequest) {
         if(addressRequest == null || 
             (addressRequest.getCity() == null && 
