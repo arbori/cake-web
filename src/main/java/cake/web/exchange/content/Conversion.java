@@ -5,47 +5,71 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * <p>Utility class for converting string values to various Java types based on format recognition.</p>
+ * <p>
+ * Utility class for converting string values to various Java types based on
+ * format recognition.
+ * </p>
  * 
- * <p>This class is the core of Cake Web's type conversion system. It uses regular expressions to
- * identify the format of input strings and converts them to appropriate target types. The conversion
- * is driven by format recognition rather than explicit type mapping, which allows for flexible
- * and intuitive parameter binding.</p>
+ * <p>
+ * This class is the core of Cake Web's type conversion system. It uses regular
+ * expressions to
+ * identify the format of input strings and converts them to appropriate target
+ * types. The conversion
+ * is driven by format recognition rather than explicit type mapping, which
+ * allows for flexible
+ * and intuitive parameter binding.
+ * </p>
  * 
  * <h3>Conversion Behavior</h3>
  * <ul>
- *   <li><b>Integers:</b> Strings containing only digits (with optional sign) are converted to
- *       Byte, Short, Integer, Long, or BigInteger</li>
- *   <li><b>Floating-point:</b> Strings with decimal points or scientific notation are converted to
- *       Float, Double, or BigDecimal</li>
- *   <li><b>Date/Time:</b> Strings matching ISO-8601 formats are converted to LocalDate,
- *       LocalDateTime, OffsetDateTime, etc.</li>
- *   <li><b>Boolean:</b> "true" and "false" (case-insensitive) are converted to Boolean</li>
- *   <li><b>UUID:</b> Strings matching UUID format are converted to UUID</li>
- *   <li><b>String:</b> All other values are returned as String</li>
+ * <li><b>Integers:</b> Strings containing only digits (with optional sign) are
+ * converted to
+ * Byte, Short, Integer, Long, or BigInteger</li>
+ * <li><b>Floating-point:</b> Strings with decimal points or scientific notation
+ * are converted to
+ * Float, Double, or BigDecimal</li>
+ * <li><b>Date/Time:</b> Strings matching ISO-8601 formats are converted to
+ * LocalDate,
+ * LocalDateTime, OffsetDateTime, etc.</li>
+ * <li><b>Boolean:</b> "true" and "false" (case-insensitive) are converted to
+ * Boolean</li>
+ * <li><b>UUID:</b> Strings matching UUID format are converted to UUID</li>
+ * <li><b>String:</b> All other values are returned as String</li>
  * </ul>
  * 
  * <h3>Design Intention</h3>
- * <p>This class embodies a key framework decision: <b>conversion by format recognition</b>.
- * Instead of requiring annotations or explicit type declarations, the framework infers
- * the appropriate conversion from the input format. This makes the framework more intuitive
- * and reduces ceremony for developers.</p>
+ * <p>
+ * This class embodies a key framework decision: <b>conversion by format
+ * recognition</b>.
+ * Instead of requiring annotations or explicit type declarations, the framework
+ * infers
+ * the appropriate conversion from the input format. This makes the framework
+ * more intuitive
+ * and reduces ceremony for developers.
+ * </p>
  * 
  * <h3>Important Behavioral Note</h3>
- * <p>Because conversion is format-driven, a value that looks like an integer (e.g., "123")
- * will only be converted to integer types, not to floating-point types. This prevents
- * unexpected conversions but may cause {@link ClassCastException} if the target type
- * is Float and the value looks like an integer.</p>
+ * <p>
+ * Because conversion is format-driven, a value that looks like an integer
+ * (e.g., "123")
+ * will only be converted to integer types, not to floating-point types. This
+ * prevents
+ * unexpected conversions but may cause {@link ClassCastException} if the target
+ * type
+ * is Float and the value looks like an integer.
+ * </p>
  * 
  * <h3>Thread Safety</h3>
- * <p>This class is stateless and thread-safe.</p>
+ * <p>
+ * This class is stateless and thread-safe.
+ * </p>
  * 
  * @since 1.0.0
  * @see #convert(Object, Class)
  * @see #kindOfParamType(Object)
  */
-public class Convertion {
-    private Convertion() {
+public class Conversion {
+    private Conversion() {
         // static class
     }
 
@@ -63,48 +87,52 @@ public class Convertion {
      * Type that framework has capability to convert from String
      */
     private static List<String> basicConversebleType = Arrays.asList(
-        "java.lang.Boolean",
-        "java.util.UUID",
-        "java.lang.String",
-        "java.lang.Byte",
-        "java.lang.Short",
-        "java.lang.Integer",
-        "java.lang.Long",
-        "java.math.BigInteger",
-        "java.lang.Float",
-        "java.lang.Double",
-        "java.math.BigDecimal",
-        "java.time.LocalTime",
-        "java.time.LocalDate",
-        "java.time.LocalDateTime",
-        "java.time.OffsetDateTime",
-        "java.time.OffsetTime",
-        "java.time.ZonedDateTime"
-    );
+            "java.lang.Boolean",
+            "java.util.UUID",
+            "java.lang.String",
+            "java.lang.Byte",
+            "java.lang.Short",
+            "java.lang.Integer",
+            "java.lang.Long",
+            "java.math.BigInteger",
+            "java.lang.Float",
+            "java.lang.Double",
+            "java.math.BigDecimal",
+            "java.time.LocalTime",
+            "java.time.LocalDate",
+            "java.time.LocalDateTime",
+            "java.time.OffsetDateTime",
+            "java.time.OffsetTime",
+            "java.time.ZonedDateTime");
 
     /**
-     * Converts the given object to the specified target type. The conversion logic is based on the format of the input value and the target type.
+     * Converts the given object to the specified target type. The conversion logic
+     * is based on the format of the input value and the target type.
      * Supported conversions include:
      * <ul>
-     *   <li>Numeric types (byte, short, int, long, float, double, BigInteger, BigDecimal)</li>
-     *   <li>Date/time types (LocalTime, LocalDate, LocalDateTime, OffsetDateTime, OffsetTime, ZonedDateTime)</li>
-     *   <li>Boolean type</li>
-     *   <li>UUID type</li>
-     *   <li>String and Object types (returns the string value)</li>
+     * <li>Numeric types (byte, short, int, long, float, double, BigInteger,
+     * BigDecimal)</li>
+     * <li>Date/time types (LocalTime, LocalDate, LocalDateTime, OffsetDateTime,
+     * OffsetTime, ZonedDateTime)</li>
+     * <li>Boolean type</li>
+     * <li>UUID type</li>
+     * <li>String and Object types (returns the string value)</li>
      * </ul>
      *
-     * @param httpMetadataHandle 
-     * @param object the input object to convert (typically a string representation of a path parameter)
-     * @param targetType the class of the target type to convert to
+     * @param httpMetadataHandle
+     * @param object             the input object to convert (typically a string
+     *                           representation of a path parameter)
+     * @param targetType         the class of the target type to convert to
      * @return the converted object of the target type
-     * @throws ClassCastException if the conversion cannot be performed due to unsupported types or invalid formats
+     * @throws ClassCastException if the conversion cannot be performed due to
+     *                            unsupported types or invalid formats
      */
     public static Object convert(Object object, Class<?> targetType) {
         if (object == null) {
             return null;
         }
 
-        if(targetType.isInstance(object)) {
+        if (targetType.isInstance(object)) {
             return object;
         }
 
@@ -115,33 +143,35 @@ public class Convertion {
         if (value.matches(INTEGER_REGEX) || value.matches(FLOATING_POINT_REGEX)) {
             result = toNumber(value, targetType);
         }
-        
-        // Check if the value looks like a date/time string (e.g., "2023-08-15T14:30:00Z", "14:30:00", "2023-08-15T14:30:00", etc.)
-        else if(value.matches(LOCAL_TIME_REGEX) ||
-            value.matches(LOCAL_DATE_REGEX) ||
-            value.matches(LOCAL_DATE_TIME_REGEX) ||
-            value.matches(OFFSET_DATE_TIME_REGEX) ||
-            value.matches(OFFSET_TIME_REGEX) ||
-            value.matches(ZONED_DATE_TIME_REGEX))
-        {
+
+        // Check if the value looks like a date/time string (e.g.,
+        // "2023-08-15T14:30:00Z", "14:30:00", "2023-08-15T14:30:00", etc.)
+        else if (value.matches(LOCAL_TIME_REGEX) ||
+                value.matches(LOCAL_DATE_REGEX) ||
+                value.matches(LOCAL_DATE_TIME_REGEX) ||
+                value.matches(OFFSET_DATE_TIME_REGEX) ||
+                value.matches(OFFSET_TIME_REGEX) ||
+                value.matches(ZONED_DATE_TIME_REGEX)) {
             result = toDateTime(value, targetType);
         }
 
-        else if (("true".equals(value.toLowerCase().trim()) || "false".equals(value.toLowerCase().trim())) && targetType == Boolean.class) {
+        else if (("true".equals(value.toLowerCase().trim()) || "false".equals(value.toLowerCase().trim()))
+                && targetType == Boolean.class) {
             result = Boolean.valueOf(value.toLowerCase().trim());
         }
 
-        else if(value.matches(UUID_REGEX) && targetType == UUID.class) {
+        else if (value.matches(UUID_REGEX) && targetType == UUID.class) {
             result = toUUID(value);
         }
 
-        if(result != null) {
+        if (result != null) {
             return result;
         } else if (targetType == String.class || targetType == Object.class) {
             return value;
         }
 
-        throw new ClassCastException("Unmatch parameter type and parameter data: " + targetType.getName() + ", value: " + value);
+        throw new ClassCastException(
+                "Unmatch parameter type and parameter data: " + targetType.getName() + ", value: " + value);
     }
 
     // Method to convert a string value to the specified java.lang.Number type.
@@ -203,7 +233,7 @@ public class Convertion {
 
     // Helper method to convert string values to UUID type.
     private static Object toUUID(String value) {
-        try{
+        try {
             return UUID.fromString(value);
         } catch (IllegalArgumentException _) {
             return null;
@@ -212,11 +242,12 @@ public class Convertion {
 
     /**
      * Determines the type of the given parameter value based on its format.
+     * 
      * @param value the parameter value as a string
      * @return the type description of the parameter
      */
     public static String kindOfParamType(Object object) {
-        if(!(object instanceof String)) {
+        if (!(object instanceof String)) {
             return object.getClass().getName();
         }
 
@@ -258,13 +289,17 @@ public class Convertion {
     }
 
     /**
-     * A type be a basic converseble type means that a parameter method will recieve the value
-     * converted from the string retrieved from path parameter. It is not a guarantee that 
-     * the content in the path parameter will convert for sure, it only means that the framework 
+     * A type be a basic converseble type means that a parameter method will recieve
+     * the value
+     * converted from the string retrieved from path parameter. It is not a
+     * guarantee that
+     * the content in the path parameter will convert for sure, it only means that
+     * the framework
      * has the logic to convert a String into this type.
      * 
      * @param type Type to check if framework can convert from String.
-     * @return Return true if the type is in the list of converseble types and false otherwise. 
+     * @return Return true if the type is in the list of converseble types and false
+     *         otherwise.
      */
     public static boolean isBasicConversebleType(Class<?> type) {
         return basicConversebleType.contains(type.getName());

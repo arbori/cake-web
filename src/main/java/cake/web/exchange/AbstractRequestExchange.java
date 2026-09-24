@@ -293,17 +293,4 @@ abstract class AbstractRequestExchange {
             throw new NotFoundException("Linkage failure loading " + fqcn, e);
         }
     }
-
-    /**
-     * Capitalizes the first letter of the string.
-     * 
-     * @param s the input string
-     * @return the capitalized string
-     */
-    private String capitalize(String s) {
-        if (s == null || s.isEmpty())
-            return "";
-
-        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
-    }
 }
