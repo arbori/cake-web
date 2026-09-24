@@ -183,6 +183,18 @@ class MethodResolverTest {
         }
     }
 
+    public static class ParamConversionResource {
+        public void dummyMethod(Integer id, String name, Boolean flag) { /* For testing */ }
+        public void singleParam(Integer id) { /* For testing */ }
+    }
+
+    public static class ArrayAndListResource {
+        public void post(String[] items) { /* For testing */ }
+        public void put(List<String> items) { /* For testing */ }
+        public void delete(Integer id, String[] items) { /* For testing */ }
+        public void patch(Integer id, List<String> items) { /* For testing */ }
+    }
+
     // ==================== SUCCESS CASES ====================
 
     @Test
@@ -190,7 +202,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of();
         
         Method method = MethodResolver.methodResolution(
-            ValidResource.class, HttpMethodName.GET, pathParams
+            ValidResource.class, HttpMethodName.GET, pathParams, false
         );
         
         assertNotNull(method);
@@ -203,7 +215,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of("123");
         
         Method method = MethodResolver.methodResolution(
-            ParentResource.class, HttpMethodName.GET, pathParams
+            ParentResource.class, HttpMethodName.GET, pathParams, false
         );
         
         assertNotNull(method);
@@ -217,7 +229,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of("456", "John");
         
         Method method = MethodResolver.methodResolution(
-            ValidResource.class, HttpMethodName.GET, pathParams
+            ValidResource.class, HttpMethodName.GET, pathParams, false
         );
         
         assertNotNull(method);
@@ -233,7 +245,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of(uuid.toString());
         
         Method mathod = MethodResolver.methodResolution(
-            ValidResource.class, HttpMethodName.DELETE, pathParams
+            ValidResource.class, HttpMethodName.DELETE, pathParams, false
         );
         
         assertNotNull(mathod);
@@ -247,7 +259,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of(date.toString());
         
         Method method = MethodResolver.methodResolution(
-            ValidResource.class, HttpMethodName.PATCH, pathParams
+            ValidResource.class, HttpMethodName.PATCH, pathParams, false
         );
         
         assertNotNull(method);
@@ -261,7 +273,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of(dateTime.toString());
         
         Method method = MethodResolver.methodResolution(
-            ValidResource.class, HttpMethodName.OPTIONS, pathParams
+            ValidResource.class, HttpMethodName.OPTIONS, pathParams, false
         );
         
         assertNotNull(method);
@@ -275,7 +287,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of(amount.toString());
         
         Method method = MethodResolver.methodResolution(
-            ValidResource.class, HttpMethodName.HEAD, pathParams
+            ValidResource.class, HttpMethodName.HEAD, pathParams, false
         );
         
         assertNotNull(method);
@@ -290,7 +302,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of();
         
         Method method = MethodResolver.methodResolution(
-            ChildResource.class, HttpMethodName.GET, pathParams
+            ChildResource.class, HttpMethodName.GET, pathParams, false
         );
         
         assertNotNull(method);
@@ -306,7 +318,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of("456");
         
         AmbiguityException exception = assertThrows(AmbiguityException.class, () ->
-            MethodResolver.methodResolution(ChildResource.class, HttpMethodName.GET, pathParams)
+            MethodResolver.methodResolution(ChildResource.class, HttpMethodName.GET, pathParams, false)
         );
 
         assertTrue(exception.getMessage().contains("Ambiguity call to cake.web.resource.MethodResolverTest$ChildResource.get"));
@@ -317,7 +329,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of("123");  // 1 parameter
         
         AmbiguityException exception = assertThrows(AmbiguityException.class, () ->
-            MethodResolver.methodResolution(AmbiguousResource.class, HttpMethodName.GET, pathParams)
+            MethodResolver.methodResolution(AmbiguousResource.class, HttpMethodName.GET, pathParams, false)
         );
         
         assertTrue(exception.getMessage().contains("Ambiguity call"));
@@ -331,7 +343,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of("100", "1");  // 2 parameters
         
         AmbiguityException exception = assertThrows(AmbiguityException.class, () ->
-            MethodResolver.methodResolution(AmbiguousResource.class, HttpMethodName.GET, pathParams)
+            MethodResolver.methodResolution(AmbiguousResource.class, HttpMethodName.GET, pathParams, false)
         );
         
         assertTrue(exception.getMessage().contains("Ambiguity call"));
@@ -345,7 +357,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of();
         
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            MethodResolver.methodResolution(ValidResource.class, HttpMethodName.PUT, pathParams)
+            MethodResolver.methodResolution(ValidResource.class, HttpMethodName.PUT, pathParams, false)
         );
         
         assertTrue(exception.getMessage().contains("No public non-static method named"));
@@ -357,7 +369,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of("123", "Say my name", "456");
         
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            MethodResolver.methodResolution(ValidResource.class, HttpMethodName.GET, pathParams)
+            MethodResolver.methodResolution(ValidResource.class, HttpMethodName.GET, pathParams, false)
         );
         
         assertTrue(exception.getMessage().contains("No public non-static method named"));
@@ -369,7 +381,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of();
         
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            MethodResolver.methodResolution(EmptyResource.class, HttpMethodName.GET, pathParams)
+            MethodResolver.methodResolution(EmptyResource.class, HttpMethodName.GET, pathParams, false)
         );
         
         assertTrue(exception.getMessage().contains("No public non-static method named"));
@@ -382,7 +394,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of("100");
         
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            MethodResolver.methodResolution(PrimitiveResource.class, HttpMethodName.GET, pathParams)
+            MethodResolver.methodResolution(PrimitiveResource.class, HttpMethodName.GET, pathParams, false)
         );
         
         assertTrue(exception.getMessage().contains("No public non-static method named cake.web.resource.MethodResolverTest$PrimitiveResource.get found."));
@@ -395,7 +407,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of();
         
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            MethodResolver.methodResolution(NoDefaultConstructorResource.class, HttpMethodName.GET, pathParams)
+            MethodResolver.methodResolution(NoDefaultConstructorResource.class, HttpMethodName.GET, pathParams, false)
         );
         
         assertTrue(exception.getMessage().contains("constructor"));
@@ -406,7 +418,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of();
         
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            MethodResolver.methodResolution(PrivateConstructorResource.class, HttpMethodName.GET, pathParams)
+            MethodResolver.methodResolution(PrivateConstructorResource.class, HttpMethodName.GET, pathParams, false)
         );
         
         assertTrue(exception.getMessage().contains("constructor"));
@@ -419,7 +431,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of();
         
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            MethodResolver.methodResolution(StaticMethodResource.class, HttpMethodName.GET, pathParams)
+            MethodResolver.methodResolution(StaticMethodResource.class, HttpMethodName.GET, pathParams, false)
         );
         
         assertTrue(exception.getMessage().contains("No public non-static method named"));
@@ -432,7 +444,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of();
         
         NoSuchMethodException exception = assertThrows(NoSuchMethodException.class, () ->
-            MethodResolver.methodResolution(PrivateMethodResource.class, HttpMethodName.GET, pathParams)
+            MethodResolver.methodResolution(PrivateMethodResource.class, HttpMethodName.GET, pathParams, false)
         );
         
         assertTrue(exception.getMessage().contains("No public non-static method named"));
@@ -445,7 +457,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of();
         
         assertThrows(IllegalArgumentException.class, () ->
-            MethodResolver.methodResolution(null, HttpMethodName.GET, pathParams)
+            MethodResolver.methodResolution(null, HttpMethodName.GET, pathParams, false)
         );
     }
 
@@ -454,14 +466,14 @@ class MethodResolverTest {
         List<Object> pathParams = List.of();
         
         assertThrows(IllegalArgumentException.class, () ->
-            MethodResolver.methodResolution(ValidResource.class, null, pathParams)
+            MethodResolver.methodResolution(ValidResource.class, null, pathParams, false)
         );
     }
 
     @Test
     void shouldThrowExceptionWhenPathParamsIsNull() {
         assertThrows(IllegalArgumentException.class, () ->
-            MethodResolver.methodResolution(ValidResource.class, HttpMethodName.GET, null)
+            MethodResolver.methodResolution(ValidResource.class, HttpMethodName.GET, null, false)
         );
     }
 
@@ -472,7 +484,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of();
         
         Method method = MethodResolver.methodResolution(
-            ValidResource.class, HttpMethodName.GET, pathParams
+            ValidResource.class, HttpMethodName.GET, pathParams, false
         );
         
         assertNotNull(method);
@@ -484,7 +496,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of(Integer.toString(Integer.MAX_VALUE));
         
         Method method = MethodResolver.methodResolution(
-            ParentResource.class, HttpMethodName.GET, pathParams
+            ParentResource.class, HttpMethodName.GET, pathParams, false
         );
         
         assertNotNull(method);
@@ -496,7 +508,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of(Long.toString(Long.MAX_VALUE));
         
         Method method = MethodResolver.methodResolution(
-            ValidResource.class, HttpMethodName.GET, pathParams
+            ValidResource.class, HttpMethodName.GET, pathParams, false
         );
         
         assertNotNull(method);
@@ -510,7 +522,7 @@ class MethodResolverTest {
         List<Object> pathParams = List.of("John", "30");
         
         Method method = MethodResolver.methodResolution(
-            ValidResource.class, HttpMethodName.POST, pathParams
+            ValidResource.class, HttpMethodName.POST, pathParams, false
         );
         
         assertNotNull(method);
@@ -522,9 +534,8 @@ class MethodResolverTest {
     // ==================== convertPathParams TESTS ====================
 
     @Test
-    void shouldConvertPathParams() throws IOException {
+    void shouldConvertPathParams() throws Exception {
         List<Object> pathParams = List.of("123", "John", "true");
-        Class<?>[] paramTypes = {Integer.class, String.class, Boolean.class};
 
         when(httpServletRequest.getParameterMap()).thenReturn(Map.of());
         when(httpServletRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
@@ -533,7 +544,8 @@ class MethodResolverTest {
 
         HttpDataHandle httpDataHandle = new HttpDataHandle(httpServletRequest);
 
-        List<Object> result = MethodResolver.convertPathParams(paramTypes, pathParams, httpDataHandle);
+        Method method = ParamConversionResource.class.getMethod("dummyMethod", Integer.class, String.class, Boolean.class);
+        List<Object> result = MethodResolver.convertPathParams(method, pathParams, httpDataHandle);
         
         assertEquals(3, result.size());
         assertEquals(123, result.get(0));
@@ -542,9 +554,8 @@ class MethodResolverTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenPathParamsSizeExceedsParamTypes() throws IOException {
+    void shouldThrowExceptionWhenPathParamsSizeExceedsParamTypes() throws Exception {
         List<Object> pathParams = List.of("123", "456");
-        Class<?>[] paramTypes = {Integer.class};
 
         when(httpServletRequest.getParameterMap()).thenReturn(Map.of());
         when(httpServletRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
@@ -553,16 +564,14 @@ class MethodResolverTest {
 
         HttpDataHandle httpDataHandle = new HttpDataHandle(httpServletRequest);
         
-        // convertPathParams iterates over pathParams.size()
-        // but parameterTypes[i] will throw ArrayIndexOutOfBoundsException
+        Method method = ParamConversionResource.class.getMethod("singleParam", Integer.class);
         assertThrows(ArrayIndexOutOfBoundsException.class, 
-            () -> MethodResolver.convertPathParams(paramTypes, pathParams, httpDataHandle));
+            () -> MethodResolver.convertPathParams(method, pathParams, httpDataHandle));
     }
 
     @Test
-    void shouldThrowExceptionWhenParamTypesIsPrimitive() throws IOException {
+    void shouldThrowExceptionWhenParamTypesIsPrimitive() throws Exception {
         List<Object> pathParams = List.of("123", "456");
-        Class<?>[] paramTypes = {int.class, long.class};
 
         when(httpServletRequest.getParameterMap()).thenReturn(Map.of());
         when(httpServletRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
@@ -571,10 +580,9 @@ class MethodResolverTest {
 
         HttpDataHandle httpDataHandle = new HttpDataHandle(httpServletRequest);
         
-        // convertPathParams iterates over pathParams.size()
-        // but parameterTypes[i] will throw ArrayIndexOutOfBoundsException
+        Method method = PrimitiveResource.class.getMethod("post", long.class, String.class);
         assertThrows(PrimitiveNotAllowedException.class, 
-            () -> MethodResolver.convertPathParams(paramTypes, pathParams, httpDataHandle));
+            () -> MethodResolver.convertPathParams(method, pathParams, httpDataHandle));
     }
 
     @Test
@@ -590,7 +598,7 @@ class MethodResolverTest {
         HttpDataHandle httpDataHandle = new HttpDataHandle(httpServletRequest);
 
         Method method = MethodResolver.methodResolution(
-            NotOnlyPathResource.class, HttpMethodName.GET, pathParams
+            NotOnlyPathResource.class, HttpMethodName.GET, pathParams, false
         );
         
         assertNotNull(method);
@@ -598,13 +606,12 @@ class MethodResolverTest {
         assertEquals(Integer.class, method.getParameterTypes()[0]);
         assertEquals(NotOnlyPathQuery.class, method.getParameterTypes()[1]);
 
-        List<Object> methodParameterData = MethodResolver.convertPathParams(method.getParameterTypes(), pathParams, httpDataHandle);
+        List<Object> methodParameterData = MethodResolver.convertPathParams(method, pathParams, httpDataHandle);
 
         assertInstanceOf(Integer.class, methodParameterData.get(0));
         assertInstanceOf(NotOnlyPathQuery.class, methodParameterData.get(1));
         assertEquals(123, ((Integer) methodParameterData.get(0)));
         assertEquals("John", ((NotOnlyPathQuery) methodParameterData.get(1)).getName());
-
     }
 
     @Test
@@ -628,7 +635,7 @@ class MethodResolverTest {
         HttpDataHandle httpDataHandle = new HttpDataHandle(httpServletRequest);
 
         Method method = MethodResolver.methodResolution(
-            NotOnlyPathResource.class, HttpMethodName.POST, pathParams
+            NotOnlyPathResource.class, HttpMethodName.POST, pathParams, false
         );
         
         assertNotNull(method);
@@ -636,7 +643,7 @@ class MethodResolverTest {
         assertEquals(Integer.class, method.getParameterTypes()[0]);
         assertEquals(NotOnlyPathBody.class, method.getParameterTypes()[1]);
 
-        List<Object> methodParameterData = MethodResolver.convertPathParams(method.getParameterTypes(), pathParams, httpDataHandle);
+        List<Object> methodParameterData = MethodResolver.convertPathParams(method, pathParams, httpDataHandle);
 
         assertInstanceOf(Integer.class, methodParameterData.get(0));
         assertInstanceOf(NotOnlyPathBody.class, methodParameterData.get(1));
@@ -675,7 +682,7 @@ class MethodResolverTest {
         HttpDataHandle httpDataHandle = new HttpDataHandle(httpServletRequest);
 
         Method method = MethodResolver.methodResolution(
-            NotOnlyPathResource.class, HttpMethodName.PUT, pathParams
+            NotOnlyPathResource.class, HttpMethodName.PUT, pathParams, false
         );
         
         assertNotNull(method);
@@ -684,7 +691,7 @@ class MethodResolverTest {
         assertEquals(NotOnlyPathBody.class, method.getParameterTypes()[1]);
         assertEquals(NotOnlyPathHeader.class, method.getParameterTypes()[2]);
 
-        List<Object> methodParameterData = MethodResolver.convertPathParams(method.getParameterTypes(), pathParams, httpDataHandle);
+        List<Object> methodParameterData = MethodResolver.convertPathParams(method, pathParams, httpDataHandle);
 
         assertInstanceOf(Integer.class, methodParameterData.get(0));
         assertInstanceOf(NotOnlyPathBody.class, methodParameterData.get(1));
@@ -694,5 +701,163 @@ class MethodResolverTest {
         assertEquals(4, ((NotOnlyPathBody) methodParameterData.get(1)).getFiscalNumber());
         assertEquals("John", ((NotOnlyPathBody) methodParameterData.get(1)).getName());
         assertEquals(expectedToken, ((NotOnlyPathHeader) methodParameterData.get(2)).getAuthorization());
+    }
+
+    // ==================== ARRAY AND LIST RESOLUTION AND CONVERSION TESTS ====================
+
+    @Test
+    void shouldResolveMethodWithArrayBodyParameter() throws Exception {
+        List<Object> pathParams = List.of();
+        
+        Method method = MethodResolver.methodResolution(
+            ArrayAndListResource.class, HttpMethodName.POST, pathParams, true
+        );
+        
+        assertNotNull(method);
+        assertEquals("post", method.getName());
+        assertEquals(1, method.getParameterCount());
+        assertTrue(method.getParameterTypes()[0].isArray());
+        assertEquals(String.class, method.getParameterTypes()[0].getComponentType());
+    }
+
+    @Test
+    void shouldResolveMethodWithListBodyParameter() throws Exception {
+        List<Object> pathParams = List.of();
+        
+        Method method = MethodResolver.methodResolution(
+            ArrayAndListResource.class, HttpMethodName.PUT, pathParams, true
+        );
+        
+        assertNotNull(method);
+        assertEquals("put", method.getName());
+        assertEquals(1, method.getParameterCount());
+        assertEquals(List.class, method.getParameterTypes()[0]);
+    }
+
+    @Test
+    void shouldResolveMethodWithPathAndArrayBodyParameter() throws Exception {
+        List<Object> pathParams = List.of("123");
+        
+        Method method = MethodResolver.methodResolution(
+            ArrayAndListResource.class, HttpMethodName.DELETE, pathParams, true
+        );
+        
+        assertNotNull(method);
+        assertEquals("delete", method.getName());
+        assertEquals(2, method.getParameterCount());
+        assertEquals(Integer.class, method.getParameterTypes()[0]);
+        assertTrue(method.getParameterTypes()[1].isArray());
+    }
+
+    @Test
+    void shouldResolveMethodWithPathAndListBodyParameter() throws Exception {
+        List<Object> pathParams = List.of("123");
+        
+        Method method = MethodResolver.methodResolution(
+            ArrayAndListResource.class, HttpMethodName.PATCH, pathParams, true
+        );
+        
+        assertNotNull(method);
+        assertEquals("patch", method.getName());
+        assertEquals(2, method.getParameterCount());
+        assertEquals(Integer.class, method.getParameterTypes()[0]);
+        assertEquals(List.class, method.getParameterTypes()[1]);
+    }
+
+    @Test
+    void shouldConvertArrayBodyParams() throws Exception {
+        List<Object> pathParams = List.of();
+        String json = "[\"item1\", \"item2\", \"item3\"]";
+
+        when(httpServletRequest.getParameterMap()).thenReturn(Collections.emptyMap());
+        when(httpServletRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+        when(httpServletRequest.getReader()).thenReturn(new BufferedReader(new StringReader(json)));
+        when(httpServletRequest.getHeader("Authorization")).thenReturn(null);
+
+        HttpDataHandle httpDataHandle = new HttpDataHandle(httpServletRequest);
+
+        Method method = ArrayAndListResource.class.getMethod("post", String[].class);
+        List<Object> result = MethodResolver.convertPathParams(method, pathParams, httpDataHandle);
+
+        assertEquals(1, result.size());
+        assertTrue(result.get(0) instanceof String[]);
+        String[] items = (String[]) result.get(0);
+        assertEquals(3, items.length);
+        assertEquals("item1", items[0]);
+        assertEquals("item2", items[1]);
+        assertEquals("item3", items[2]);
+    }
+
+    @Test
+    void shouldConvertListBodyParams() throws Exception {
+        List<Object> pathParams = List.of();
+        String json = "[\"alpha\", \"beta\"]";
+
+        when(httpServletRequest.getParameterMap()).thenReturn(Collections.emptyMap());
+        when(httpServletRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+        when(httpServletRequest.getReader()).thenReturn(new BufferedReader(new StringReader(json)));
+        when(httpServletRequest.getHeader("Authorization")).thenReturn(null);
+
+        HttpDataHandle httpDataHandle = new HttpDataHandle(httpServletRequest);
+
+        Method method = ArrayAndListResource.class.getMethod("put", List.class);
+        List<Object> result = MethodResolver.convertPathParams(method, pathParams, httpDataHandle);
+
+        assertEquals(1, result.size());
+        assertTrue(result.get(0) instanceof List<?>);
+        @SuppressWarnings("unchecked")
+        List<String> items = (List<String>) result.get(0);
+        assertEquals(2, items.size());
+        assertEquals("alpha", items.get(0));
+        assertEquals("beta", items.get(1));
+    }
+
+    @Test
+    void shouldConvertPathAndArrayBodyParams() throws Exception {
+        List<Object> pathParams = List.of("42");
+        String json = "[\"first\", \"second\"]";
+
+        when(httpServletRequest.getParameterMap()).thenReturn(Collections.emptyMap());
+        when(httpServletRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+        when(httpServletRequest.getReader()).thenReturn(new BufferedReader(new StringReader(json)));
+        when(httpServletRequest.getHeader("Authorization")).thenReturn(null);
+
+        HttpDataHandle httpDataHandle = new HttpDataHandle(httpServletRequest);
+
+        Method method = ArrayAndListResource.class.getMethod("delete", Integer.class, String[].class);
+        List<Object> result = MethodResolver.convertPathParams(method, pathParams, httpDataHandle);
+
+        assertEquals(2, result.size());
+        assertEquals(42, result.get(0));
+        assertTrue(result.get(1) instanceof String[]);
+        String[] items = (String[]) result.get(1);
+        assertEquals(2, items.length);
+        assertEquals("first", items[0]);
+        assertEquals("second", items[1]);
+    }
+
+    @Test
+    void shouldConvertPathAndListBodyParams() throws Exception {
+        List<Object> pathParams = List.of("99");
+        String json = "[\"hello\", \"world\"]";
+
+        when(httpServletRequest.getParameterMap()).thenReturn(Collections.emptyMap());
+        when(httpServletRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+        when(httpServletRequest.getReader()).thenReturn(new BufferedReader(new StringReader(json)));
+        when(httpServletRequest.getHeader("Authorization")).thenReturn(null);
+
+        HttpDataHandle httpDataHandle = new HttpDataHandle(httpServletRequest);
+
+        Method method = ArrayAndListResource.class.getMethod("patch", Integer.class, List.class);
+        List<Object> result = MethodResolver.convertPathParams(method, pathParams, httpDataHandle);
+
+        assertEquals(2, result.size());
+        assertEquals(99, result.get(0));
+        assertTrue(result.get(1) instanceof List<?>);
+        @SuppressWarnings("unchecked")
+        List<String> items = (List<String>) result.get(1);
+        assertEquals(2, items.size());
+        assertEquals("hello", items.get(0));
+        assertEquals("world", items.get(1));
     }
 }
