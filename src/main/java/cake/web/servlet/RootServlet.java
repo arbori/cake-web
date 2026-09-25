@@ -1,4 +1,4 @@
-package cake.web;
+package cake.web.servlet;
 
 import java.io.IOException;
 
@@ -31,7 +31,7 @@ import cake.web.exchange.TraceRequestExchange;
  * @since 0.0.45
  * @author Marcelo Arbori Nogueira (marcelo.arbori@gmial.com) 
  */
-public class RootServlet extends HttpServlet {
+public class RootServlet extends AbstractRootServlet {
     private static final long serialVersionUID = -7807285398220322910L;
 
     private static final ExceptionMapper exceptionMapper = new DefaultExceptionMapper();
@@ -233,7 +233,7 @@ public class RootServlet extends HttpServlet {
      * @param request the HTTP request
      * @param response the HTTP response
      */
-    protected void doPath(HttpServletRequest request, HttpServletResponse response)
+    protected void doPatch(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         try {
             PatchRequestExchange exchange = new PatchRequestExchange(request);

@@ -1,5 +1,6 @@
 package loan.capture;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,6 +51,25 @@ public class Address {
         return loanService.createAddress(addressRequest.getZipcode(), addressRequest.getStreet(), addressRequest.getCity(), addressRequest.getState());
     }
 
+    /**
+     * POST endpoint simulation
+     * The framework must identify the intention of create a list of new addres with gived data in addressRequest.
+     *
+     * @param addressRequestList The list of addreses to simulation
+     * @return The set of addresses response with data saved in server
+     */
+    public List<AddressResponse> post(AddressRequest[] addressRequestList) {
+        return Arrays.asList(addressRequestList).stream()
+            .map(ar -> loanService.createAddress(ar.getZipcode(), ar.getStreet(), ar.getCity(), ar.getState()))
+            .toList();
+    }
+
+    /**
+     * 
+     * @param addressId
+     * @param addressRequest
+     * @return
+     */
     public Optional<AddressResponse> put(Integer addressId, AddressRequest addressRequest) {
         Optional<AddressResponse> retrieved = loanService.getAddress(addressId);
 
@@ -70,4 +90,71 @@ public class Address {
     public Optional<AddressResponse> delete(Integer id) {
         return loanService.deleteAddress(id);
     }
+
+    /**
+     * HEAD endpoint simulation.
+     * HEAD returns the same resource metadata/object as GET.
+     *
+     * @param id Address ID
+     * @return AddressResponse or null if not found
+     */
+    public AddressResponse head(Integer id) {
+        return get(id);
+    }
+
+    /**
+     * OPTIONS endpoint simulation.
+     * OPTIONS returns resource information.
+     *
+     * @param id Address ID
+     * @return AddressResponse or null if not found
+     */
+    public AddressResponse options(Integer id) {
+        return get(id);
+    }
+
+    /**
+     * PATCH endpoint simulation.
+     * Partially updates address attributes with non-null values provided.
+     *
+     * @param id Address ID
+     * @param addressRequest Partial address update request
+     * @return Updated AddressResponse or null if not found
+     */
+    public AddressResponse patch(Integer id, AddressRequest addressRequest) {
+        try {
+            return loanService.updateAddress(
+                id,
+                addressRequest.getZipcode(),
+                addressRequest.getStreet(),
+                addressRequest.getCity(),
+                addressRequest.getState()
+            );
+        } catch (IllegalArgumentException _) {
+            return null;
+        }
+    }
+
+    /**
+     * TRACE endpoint simulation.
+     * Echoes the resource representation for diagnostic/troubleshooting purposes.
+     *
+     * @param id Address ID
+     * @return AddressResponse or null if not found
+     */
+    public AddressResponse trace(Integer id) {
+        return get(id);
+    }
+
+    /**
+     * CONNECT endpoint simulation.
+     * Establishes / simulates tunnel connection for the address resource.
+     *
+     * @param id Address ID
+     * @return AddressResponse or null if not found
+     */
+    public AddressResponse connect(Integer id) {
+        return get(id);
+    }
 }
+

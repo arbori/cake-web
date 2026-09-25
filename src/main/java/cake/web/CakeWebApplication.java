@@ -8,6 +8,7 @@ import org.apache.catalina.LifecycleException;
 import org.apache.catalina.startup.Tomcat;
 
 import cake.web.configuration.CakeWebConfig;
+import cake.web.servlet.RootServlet;
 
 /**
  * Main entry point for the Cake Web application.
