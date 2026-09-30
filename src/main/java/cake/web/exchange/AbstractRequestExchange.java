@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletRequest;
 
+import cake.web.configuration.CakeWebRegistry;
 import cake.web.exception.AmbiguityException;
 import cake.web.exception.NotFoundException;
 import cake.web.exception.ResourceResolutionException;
@@ -273,7 +274,12 @@ abstract class AbstractRequestExchange {
      */
     private Optional<Class<?>> tryLoadClass(String prefix, String sufix) {
         String fqcn = (prefix.isEmpty()) ? sufix : prefix + "." + sufix;
-         
+
+        // 🔒 Security: enforce base package restriction
+        if (!CakeWebRegistry.isClassLoadAllowed(fqcn)) {
+            return Optional.empty();
+        }
+
         Class<?> classFounded = resourceCache.get(fqcn);
 
         if (classFounded != null) {
