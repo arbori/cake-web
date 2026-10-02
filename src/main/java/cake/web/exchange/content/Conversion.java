@@ -20,7 +20,7 @@ import java.util.UUID;
  * and intuitive parameter binding.
  * </p>
  * 
- * <h3>Conversion Behavior</h3>
+ * <h2>Conversion Behavior</h2>
  * <ul>
  * <li><b>Integers:</b> Strings containing only digits (with optional sign) are
  * converted to
@@ -37,7 +37,7 @@ import java.util.UUID;
  * <li><b>String:</b> All other values are returned as String</li>
  * </ul>
  * 
- * <h3>Design Intention</h3>
+ * <h2>Design Intention</h2>
  * <p>
  * This class embodies a key framework decision: <b>conversion by format
  * recognition</b>.
@@ -48,7 +48,7 @@ import java.util.UUID;
  * and reduces ceremony for developers.
  * </p>
  * 
- * <h3>Important Behavioral Note</h3>
+ * <h2>Important Behavioral Note</h2>
  * <p>
  * Because conversion is format-driven, a value that looks like an integer
  * (e.g., "123")
@@ -59,7 +59,7 @@ import java.util.UUID;
  * is Float and the value looks like an integer.
  * </p>
  * 
- * <h3>Thread Safety</h3>
+ * <h2>Thread Safety</h2>
  * <p>
  * This class is stateless and thread-safe.
  * </p>
@@ -119,10 +119,9 @@ public class Conversion {
      * <li>String and Object types (returns the string value)</li>
      * </ul>
      *
-     * @param httpMetadataHandle
-     * @param object             the input object to convert (typically a string
-     *                           representation of a path parameter)
-     * @param targetType         the class of the target type to convert to
+     * @param object     the input object to convert (typically a string
+     *                   representation of a path parameter)
+     * @param targetType the class of the target type to convert to
      * @return the converted object of the target type
      * @throws ClassCastException if the conversion cannot be performed due to
      *                            unsupported types or invalid formats
@@ -243,7 +242,7 @@ public class Conversion {
     /**
      * Determines the type of the given parameter value based on its format.
      * 
-     * @param value the parameter value as a string
+     * @param object the parameter value to analyze
      * @return the type description of the parameter
      */
     public static String kindOfParamType(Object object) {

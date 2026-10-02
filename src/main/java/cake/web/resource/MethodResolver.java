@@ -20,59 +20,33 @@ import cake.web.exchange.content.QueryParamContent;
 
 /**
  * <p>
- * Extracts and provides access to HTTP request data for the framework.
+ * Utility class responsible for discovering, resolving, and validating HTTP
+ * endpoint methods on resource classes.
  * </p>
  * 
  * <p>
- * This class acts as a unified data source for all HTTP request information:
- * query parameters, headers, body content, and authentication tokens. It also
- * provides factory methods to build strongly-typed objects from these data
- * sources.
+ * This class inspects public non-static methods matching the requested HTTP method
+ * name (e.g., {@code get}, {@code post}, {@code put}, {@code delete}), verifies
+ * parameter compatibility with incoming path parameters, query parameters,
+ * headers, and request bodies (including DTOs, arrays, and lists), checks for
+ * endpoint overload ambiguity, and converts raw input values into strongly-typed
+ * method arguments.
  * </p>
  * 
- * <h3>Supported Data Sources</h3>
- * <ul>
- * <li><b>Body:</b> JSON content parsed via Jackson, wrapped with class name
- * key</li>
- * <li><b>Query Parameters:</b> URL query string, mapped to field names</li>
- * <li><b>Headers:</b> HTTP headers, mapped to field names
- * (case-insensitive)</li>
- * <li><b>Authentication:</b> Bearer token from Authorization header</li>
- * </ul>
- * 
- * <h3>JSON Format Requirement</h3>
+ * <h2>Design Intention</h2>
  * <p>
- * For body content, the JSON must be wrapped in an object with the key matching
- * the class name in lowercase. For example, for {@code CustomerRequest}, the
- * expected
- * JSON is {@code {"customerRequest": {...}}}.
+ * Centralizes method matching and parameter binding logic, enabling annotation-free
+ * REST endpoint invocation based on convention over configuration.
  * </p>
  * 
- * <h3>Field Mapping</h3>
- * <ul>
- * <li><b>Query Parameters:</b> Field names must match query parameter names
- * exactly</li>
- * <li><b>Headers:</b> Field names match header names (case-insensitive).
- * CamelCase field names are also matched to kebab-case (e.g., {@code traceId} →
- * {@code Trace-Id})</li>
- * </ul>
- * 
- * <h3>Design Intention</h3>
+ * <h2>Thread Safety</h2>
  * <p>
- * This class centralizes all request data extraction, making it easier to
- * maintain
- * and extend the framework's data binding capabilities.
+ * This class is stateless and thread-safe.
  * </p>
  * 
- * <h3>Thread Safety</h3>
- * <p>
- * This class is not thread-safe. A new instance is created per request.
- * </p>
- * 
- * @since 1.0.0
- * @see #buildFromBody(Class)
- * @see #buildFromHeader(Class)
- * @see #buildFromQueryParameter(Class)
+ * @since 0.0.45
+ * @see MethodHandler
+ * @see MethodResolution
  */
 public class MethodResolver {
     private MethodResolver() {
@@ -89,8 +63,8 @@ public class MethodResolver {
      * @param pathParams           the path parameter values from the request
      * @param isBodyContentAnArray identify if body content is an array.
      * @return The resolution of the method to call and its converted arguments
-     * @throws NoSuchMethodException if no compatible method is found or if the call
-     *                               is ambiguous
+     * @throws NoSuchMethodException if no compatible method is found
+     * @throws AmbiguityException    if multiple compatible methods match the request
      */
     public static Method methodResolution(Class<?> resourceClass, HttpMethodName httpMethodName,
             List<Object> pathParams, boolean isBodyContentAnArray) throws NoSuchMethodException, AmbiguityException {
@@ -220,8 +194,9 @@ public class MethodResolver {
      * Attempts to convert the path parameters to the types required by the method's
      * parameters.
      * 
-     * @param method     the method for which to create the parameter data list
-     * @param pathParams the original path parameters as objects
+     * @param method         the method for which to create the parameter data list
+     * @param pathParams     the original path parameters as objects
+     * @param httpDataHandle the HTTP data handle providing body, query, and header values
      * @return an Optional containing the list of converted parameter values if
      *         successful, or empty if conversion fails
      */

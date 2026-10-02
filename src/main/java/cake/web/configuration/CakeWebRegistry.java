@@ -11,14 +11,14 @@ import java.util.logging.Logger;
  * framework afterward. It is intentionally a static registry because the
  * framework operates without dependency injection by design.</p>
  *
- * <h3>Lifecycle</h3>
+ * <h2>Lifecycle</h2>
  * <ol>
  *   <li>Application startup: {@link #initialize(CakeWebConfig)}</li>
  *   <li>Framework runtime: {@link #basePackage()} etc.</li>
  *   <li>Tests: {@link #reset()} to restore defaults</li>
  * </ol>
  *
- * <h3>Thread Safety</h3>
+ * <h2>Thread Safety</h2>
  * <p>The registry is written once at startup and read concurrently. Writes
  * are synchronized; reads are lock-free once initialized.</p>
  */
@@ -60,22 +60,39 @@ public final class CakeWebRegistry {
     /**
      * Returns the base package prefix, or an empty string if not set.
      * Used by the resource resolver to restrict class loading.
+     *
+     * @return the configured base package or an empty string
      */
     public static String basePackage() {
         CakeWebConfig cfg = config;
         return cfg != null && cfg.getBasePackage() != null ? cfg.getBasePackage() : "";
     }
 
+    /**
+     * Returns the configured context path.
+     *
+     * @return the context path or an empty string
+     */
     public static String contextPath() {
         CakeWebConfig cfg = config;
         return cfg != null && cfg.getContextPath() != null ? cfg.getContextPath() : "";
     }
 
+    /**
+     * Returns the configured server port.
+     *
+     * @return the port number (defaults to 8080 if not set)
+     */
     public static int port() {
         CakeWebConfig cfg = config;
         return cfg != null ? cfg.getPort() : 8080;
     }
 
+    /**
+     * Returns the configured base directory.
+     *
+     * @return the base directory or the system temporary directory
+     */
     public static String baseDir() {
         CakeWebConfig cfg = config;
         return cfg != null && cfg.getBaseDir() != null
@@ -86,10 +103,13 @@ public final class CakeWebRegistry {
     /**
      * Returns true if the given FQCN is allowed to be loaded.
      * If no base package is configured, everything is allowed.
+     *
+     * @param fqcn the fully-qualified class name to validate
+     * @return {@code true} if allowed, {@code false} otherwise
      */
     public static boolean isClassLoadAllowed(String fqcn) {
         String base = basePackage();
-        return base.isEmpty() || fqcn.startsWith(base);
+        return base.isEmpty() || fqcn.equals(base) || fqcn.startsWith(base + ".");
     }
 
     private static String describe(CakeWebConfig cfg) {

@@ -21,6 +21,44 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
+ * <p>
+ * Extracts and provides access to HTTP request data for the Cake Web framework.
+ * </p>
+ * 
+ * <p>
+ * This class acts as a unified data source for all HTTP request information:
+ * query parameters, headers, JSON body content, and authentication tokens. It also
+ * provides factory methods to build strongly-typed objects, arrays, and collections
+ * from these data sources.
+ * </p>
+ * 
+ * <h2>Supported Data Sources</h2>
+ * <ul>
+ * <li><b>Body:</b> JSON content parsed via Jackson, wrapped with class name key
+ * (e.g., {@code {"customerRequest": {...}}}) or raw JSON arrays for collections/arrays</li>
+ * <li><b>Query Parameters:</b> URL query string, mapped to field names</li>
+ * <li><b>Headers:</b> HTTP headers, mapped to field names (case-insensitive, supporting
+ * camelCase, kebab-case, and train-case)</li>
+ * <li><b>Authentication:</b> Bearer token from Authorization header</li>
+ * </ul>
+ * 
+ * <h2>Design Intention</h2>
+ * <p>
+ * Centralizes all request data extraction, making it easier to maintain
+ * and extend the framework's data binding capabilities.
+ * </p>
+ * 
+ * <h2>Thread Safety</h2>
+ * <p>
+ * This class is not thread-safe. A new instance is created per request.
+ * </p>
+ * 
+ * @since 0.0.45
+ * @see #buildFromBody(Class)
+ * @see #buildArrayFromBody(Class)
+ * @see #buildListFromBody(Type)
+ * @see #buildFromHeader(Class)
+ * @see #buildFromQueryParameter(Class)
  */
 public class HttpDataHandle {
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -34,7 +72,7 @@ public class HttpDataHandle {
     private final boolean bodyContentAnArray;
 
     /**
-     * Constructs a RequestHandle by extracting relevant data from the
+     * Constructs an HttpDataHandle by extracting relevant data from the
      * HttpServletRequest.
      * 
      * @param request the HttpServletRequest object containing the request data
@@ -54,10 +92,9 @@ public class HttpDataHandle {
     }
 
     /**
-     * To remove method parameters ambiguities, the framework need to know if the
-     * body is or do not an array.
+     * Indicates whether the parsed HTTP request body content is a JSON array.
      * 
-     * @return Return true if the body content is an array.
+     * @return true if the body content is a JSON array, false otherwise
      */
     public boolean isBodyContentAnArray() {
         return this.bodyContentAnArray;
@@ -126,12 +163,12 @@ public class HttpDataHandle {
         }
 
         if (bodyContent == null || !bodyContent.isArray()) {
-            // Retorna um array vazio do tipo correto caso o body venha vazio
+            // Return an empty array of the target component type if body is empty
             return java.lang.reflect.Array.newInstance(targetClass.getComponentType(), 0);
         }
 
         try {
-            // O convertValue converte o JsonNode diretamente para o array tipado (ex: AddressRequest[])
+            // Convert JsonNode directly to the typed array
             return MAPPER.convertValue(bodyContent, targetClass);
 
         } catch (Exception e) {
@@ -167,10 +204,10 @@ public class HttpDataHandle {
             Type actualTypeArg = parameterizedType.getActualTypeArguments()[0];
             Class<?> elementClass = (Class<?>) actualTypeArg;
 
-            // Constrói o tipo de coleção do Jackson
+            // Construct Jackson collection type
             JavaType listType = MAPPER.getTypeFactory().constructCollectionType(List.class, elementClass);
 
-            // O convertValue também aceita o JavaType para converter o JsonNode em List tipada
+            // Convert JsonNode to typed List
             return MAPPER.convertValue(bodyContent, listType);
 
         } catch (Exception e) {
@@ -179,10 +216,9 @@ public class HttpDataHandle {
     }
 
     /**
-     * Populate an instance of the given header type from the request headers.
+     * Populates an instance of the given header type from the request headers.
      * 
-     * @param <T>        the header type
-     * @param targetType the class of the header type
+     * @param targetType the class of the header type to instantiate and populate
      * @return an instance of the header type populated from request headers
      */
     public Object buildFromHeader(Class<?> targetType) {
@@ -220,11 +256,10 @@ public class HttpDataHandle {
     }
 
     /**
-     * Populate an instance of the given header type from the request headers.
+     * Populates an instance of the given query parameter type from the request query string.
      * 
-     * @param <T>        the header type
-     * @param targetType the class of the header type
-     * @return an instance of the header type populated from request headers
+     * @param targetType the class of the query parameter type to instantiate and populate
+     * @return an instance of the query parameter type populated from request query parameters
      */
     public Object buildFromQueryParameter(Class<?> targetType) {
         Object object;

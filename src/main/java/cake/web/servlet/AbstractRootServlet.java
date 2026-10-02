@@ -12,7 +12,7 @@ import javax.servlet.http.HttpServletResponse;
  * <p>
  * Each supported HTTP method is mapped to a dedicated exchange class. The
  * servlet handles successful responses with HTTP 200 and delegates exception
- * handling to the shared {@link ExceptionMapper} instance.
+ * handling to the shared {@link cake.web.exception.mapper.ExceptionMapper} instance.
  * </p>
  * 
  * @since 0.0.45
