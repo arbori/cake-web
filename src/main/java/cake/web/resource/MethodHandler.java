@@ -19,35 +19,29 @@ import cake.web.exchange.content.Conversion;
  * <p>
  * This class acts as the facade for method resolution in Cake Web. It wraps the
  * {@link MethodResolver} logic and adds a caching layer to avoid repeated
- * reflection
- * for the same method signatures.
+ * reflection for the same method signatures.
  * </p>
  * 
- * <h3>Caching Strategy</h3>
+ * <h2>Caching Strategy</h2>
  * <ul>
  * <li><b>Cache Key:</b>
- * {@code <className>#<parameterTypeHints>#<httpMethodName>}</li>
+ * {@code <className>#<parameterTypeHints>#<httpMethodName>[#array]}</li>
  * <li><b>Parameter Type Hints:</b> For String values, the framework uses
- * {@code kindOfParamType()}
- * to infer the type; for other objects, the class name is used</li>
+ * {@code kindOfParamType()} to infer the type; for other objects, the class name is used</li>
  * <li><b>Cache Validation:</b> On cache hit, the framework verifies that
- * conversion still works
- * with the current path parameters</li>
+ * conversion still works with the current path parameters and HTTP data handle</li>
  * </ul>
  * 
- * <h3>Design Intention</h3>
+ * <h2>Design Intention</h2>
  * <p>
  * Method resolution via reflection is relatively expensive. This class reduces
- * the cost
- * to O(1) after the first request for a given method signature. The cache key
- * uses
- * type hints rather than full parameter types to handle cases where the actual
- * values
- * differ but the type signature is the same (e.g., "123" and "456" are both
+ * the cost to O(1) after the first request for a given method signature. The cache key
+ * uses type hints rather than full parameter types to handle cases where the actual
+ * values differ but the type signature is the same (e.g., "123" and "456" are both
  * integers).
  * </p>
  * 
- * <h3>Thread Safety</h3>
+ * <h2>Thread Safety</h2>
  * <p>
  * This class uses {@link ConcurrentHashMap} for thread-safe caching.
  * </p>
@@ -68,22 +62,17 @@ public class MethodHandler {
     /**
      * Finds the appropriate method on the resource class to handle the HTTP
      * request.
-     * Resolution is based ONLY on method name and parameter count.
      * 
-     * @param resourceClass      the class of the resource
-     * @param pathParams         the list of path parameter values from the URL
-     *                           (used only for count and conversion)
-     * @param httpMethodName     the HTTP method name (e.g., GET, POST)
-     * @param httpMetadataHandle
-     * @param pathParams         the list of path parameter values from the URL
-     *                           (used only for count and conversion)
+     * @param resourceClass  the class of the resource
+     * @param httpMethodName the HTTP method name (e.g., GET, POST)
+     * @param pathParams     the list of path parameter values from the URL
+     * @param httpDataHandle the HTTP data handle providing body, query, and header values
      * @return a MethodResolution object containing the resolved method and
      *         converted arguments
-     * @throws NoSuchMethodException    if no method is found, or if multiple
-     *                                  methods match by name and parameter count
-     * @throws IllegalArgumentException if path parameters cannot be converted to
+     * @throws NoSuchMethodException    if no method is found matching the request
+     * @throws IllegalArgumentException if path parameters or payload cannot be converted to
      *                                  the required types
-     * @throws AmbiguityException       if there is ambiguity calling the method
+     * @throws AmbiguityException       if multiple matching methods are found
      */
     public static MethodResolution findHttpMethod(Class<?> resourceClass, HttpMethodName httpMethodName,
             List<Object> pathParams, HttpDataHandle httpDataHandle)

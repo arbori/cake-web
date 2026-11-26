@@ -8,6 +8,7 @@ import org.apache.catalina.LifecycleException;
 import org.apache.catalina.startup.Tomcat;
 
 import cake.web.configuration.CakeWebConfig;
+import cake.web.configuration.CakeWebRegistry;
 import cake.web.servlet.RootServlet;
 
 /**
@@ -39,6 +40,8 @@ public class CakeWebApplication {
         if (configurer != null) {
             configurer.accept(config);
         }
+
+        CakeWebRegistry.initialize(config);
 
         startTomcat(config);
     }

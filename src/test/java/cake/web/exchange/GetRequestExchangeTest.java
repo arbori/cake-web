@@ -21,6 +21,11 @@ import javax.servlet.http.HttpServletResponse;
 import com.thebank.loan.model.AddressResponse;
 import com.thebank.loan.service.LoanService;
 
+import cake.web.exception.AmbiguityException;
+import cake.web.exception.MethodInvocationException;
+import cake.web.exception.ResourceExchangeException;
+import cake.web.exception.ResourceNotFoundException;
+
 class GetRequestExchangeTest {
     @Mock
     private HttpServletRequest request;
@@ -47,7 +52,7 @@ class GetRequestExchangeTest {
 
     //---------------------------------------------------------------------//
     @Test
-    void getRequestExchangeRootPackage() throws IOException {
+    void getRequestExchangeRootPackage() throws IOException, ResourceExchangeException, MethodInvocationException, AmbiguityException, ResourceNotFoundException {
         String messageExpected = "The Bank Loan System v1.0";
 
         when(request.getRequestURI()).thenReturn("thebank.com/about");
@@ -57,11 +62,7 @@ class GetRequestExchangeTest {
 
         Object result = null;
         
-        try {
-            result = getRequestExchange.call();
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
+        result = getRequestExchange.call();
 
         assertTrue(result instanceof String, "Result should be a String");
         assertEquals(messageExpected, result, "The return of get method is different than expected");
@@ -69,7 +70,7 @@ class GetRequestExchangeTest {
 
     //---------------------------------------------------------------------//
     @Test
-    void getRequestExchangePathId() throws IOException {
+    void getRequestExchangePathId() throws IOException, ResourceExchangeException {
         AddressResponse responseExpected = addresses.get(0);
 
         when(request.getRequestURI()).thenReturn("thebank.com/loan/capture/address/" + responseExpected.getId());
@@ -95,7 +96,7 @@ class GetRequestExchangeTest {
     }
 
     @Test
-    void getRequestExchangeWithQueryParameters() throws IOException {
+    void getRequestExchangeWithQueryParameters() throws IOException, ResourceExchangeException {
         AddressResponse responseExpected = addresses.get(0);
 
         when(request.getRequestURI()).thenReturn("thebank.com/loan/capture/address");

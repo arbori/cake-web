@@ -9,7 +9,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-class ConvertionTest {
+class ConversionTest {
 
     // ==================== INTEGER TYPE CONVERSIONS ====================
 

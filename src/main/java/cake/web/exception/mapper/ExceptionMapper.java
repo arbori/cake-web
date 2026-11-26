@@ -1,4 +1,4 @@
-package cake.web.exception;
+package cake.web.exception.mapper;
 
 import javax.servlet.http.HttpServletResponse;
 /**

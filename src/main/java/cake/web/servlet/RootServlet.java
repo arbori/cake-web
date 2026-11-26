@@ -7,8 +7,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import cake.web.exception.DefaultExceptionMapper;
-import cake.web.exception.ExceptionMapper;
+import cake.web.exception.mapper.DefaultExceptionMapper;
+import cake.web.exception.mapper.ExceptionMapper;
 import cake.web.exchange.ConnectRequestExchange;
 import cake.web.exchange.DeleteRequestExchange;
 import cake.web.exchange.GetRequestExchange;

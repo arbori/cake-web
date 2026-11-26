@@ -10,6 +10,7 @@ public class CakeWebConfig {
     private int port = 8080;
     private String contextPath = "";
     private String baseDir = System.getProperty("java.io.tmpdir");
+    private String basePackage = "";
 
     public int getPort() { return port; }
     public void setPort(int port) { this.port = port; }
@@ -19,4 +20,7 @@ public class CakeWebConfig {
 
     public String getBaseDir() { return baseDir; }
     public void setBaseDir(String baseDir) { this.baseDir = baseDir; }
+
+    public String getBasePackage() { return basePackage; }
+    public void setBasePackage(String basePackage) { this.basePackage = basePackage; }
 }
