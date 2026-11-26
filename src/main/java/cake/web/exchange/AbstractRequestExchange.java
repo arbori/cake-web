@@ -35,7 +35,7 @@ import cake.web.resource.MethodResolution;
  * <li>Extracts request data (body, query params, headers) via
  * {@link HttpDataHandle}</li>
  * <li>Resolves the resource class chain from URI tokens</li>
- * <li>Instantiates resources using their no-arg constructors</li>
+ * <li>Instantiates resources using their public no-arg constructors</li>
  * <li>Injects parent resource results into child resources</li>
  * <li>Resolves the target method via {@link MethodHandler}</li>
  * <li>Invokes the method with converted parameters</li>

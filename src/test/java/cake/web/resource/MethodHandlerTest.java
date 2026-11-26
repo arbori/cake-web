@@ -179,7 +179,7 @@ class MethodHandlerTest {
             MethodHandler.findHttpMethod(AmbiguousResource.class, HttpMethodName.POST, List.of("123"), httpDataHandle)
         );
         
-        assertTrue(exception.getMessage().contains("Ambiguous"));
+        assertTrue(exception.getMessage().contains("Ambiguity"));
         assertTrue(exception.getMessage().contains("post"));
         assertTrue(exception.getMessage().contains("Integer"));
         assertTrue(exception.getMessage().contains("Long"));

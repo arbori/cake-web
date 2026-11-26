@@ -326,7 +326,6 @@ public class HttpDataHandle {
     /**
      * Read the body content and convert it to a JSON node.
      * 
-     * @param request the HttpServletRequest object
      * @return a JSON node representing the body content
      * @throws IOException if an I/O error occurs while reading the request body
      */

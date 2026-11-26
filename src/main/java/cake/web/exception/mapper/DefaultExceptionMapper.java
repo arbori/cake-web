@@ -19,7 +19,7 @@ import java.util.logging.Logger;
  * responses.
  */
 public class DefaultExceptionMapper implements ExceptionMapper {
-    private static final Logger LOGGER = Logger.getLogger(ExceptionMapper.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(DefaultExceptionMapper.class.getName());
 
     @Override
     public void handle(Throwable ex, HttpServletResponse response) {
